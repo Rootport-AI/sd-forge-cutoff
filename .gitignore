@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.build/
+dist/
+pip-wheel-metadata/
+
+# Environments / tools
+.venv/
+venv/
+.env
+.env.*
+.vscode/     # VS Codeの個人設定を載せないなら
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Forge/拡張スクリーンショットなど、大きいバイナリを載せないなら
+# images/
