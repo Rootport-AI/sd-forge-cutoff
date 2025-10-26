@@ -291,15 +291,18 @@ def try_install():
                 else:
                     pad_sel_all = None  # 平均は _apply_rows_inplace 内で一度だけ計算
 
-                # 行ごとの α_i を準備（距離減衰 Off の場合は一律 α）
-                alphas_rows: List[float] = []
+                # 行ごとの α_i を準備（距離減衰 Off の場合は単一αにする）
+                use_vector_alpha = False
                 if decay_mode == "off" or (not rows_source_enc):
-                    alphas_rows = [max(0.15, min(1.0, float(alpha))) for _ in rows_victim]
+                    # 以前どおり：単一αで一括適用（ブロードキャスト不要）
+                    alpha_arg = float(alpha)
                 else:
+                    use_vector_alpha = True
                     # Dmax を簡便に：Source 行の最小～最大の広がり
                     Smin = min(rows_source_enc) if rows_source_enc else 0
                     Smax = max(rows_source_enc) if rows_source_enc else (S - 1)
                     Dmax = max(1, (Smax - Smin) or 1)
+                    alphas_rows: List[float] = []
                     for i in rows_victim:
                         d = min((abs(i - j) for j in rows_source_enc)) if rows_source_enc else Dmax
                         t = max(0.0, min(1.0, d / Dmax))
@@ -313,7 +316,10 @@ def try_install():
                         alphas_rows.append(a_i)
 
                 # ---- まとめて一発適用（順序非依存）----
-                _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alphas_rows, pad_sel=pad_sel_all)
+                if use_vector_alpha:
+                    _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alphas_rows, pad_sel=pad_sel_all)
+                else:
+                    _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alpha_arg, pad_sel=pad_sel_all)
 
                 _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
                      enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
