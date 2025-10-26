@@ -21,7 +21,8 @@ def _dbg(msg, *args):
     try:
         from modules.shared import opts as _opts
         if bool(getattr(_opts, "cutoff_forge_debug_log", False)):
-            log.info(msg, *args)
+            # ログレベルは WARNING 固定。チェックON時のみ出力し、計算に影響を与えない
+            log.warning(msg, *args)
     except Exception:
         pass
 

@@ -21,7 +21,8 @@ def _dbg(msg, *args):
     try:
         from modules.shared import opts as _opts
         if bool(getattr(_opts, "cutoff_forge_debug_log", False)):
-            log.info(msg, *args)
+            # ログレベルは WARNING 固定。チェックON時のみ出力し、計算に影響を与えない
+            log.warning(msg, *args)
     except Exception:
         pass
 
@@ -139,7 +140,7 @@ def _encode_dummy_same_engine(dummy_text: str, enc_tag: str, expect_H: int):
         # どれも一致しなければ None（→ 平均フォールバックへ）
         return None
     except Exception as e:
-        # 失敗はデバッグ時のみ表示
+        # 失敗はデバッグ時のみ表示（WARNINGで統一）
         _dbg("[cutoff:L3] dummy encode failed: %s", e)
         return None
 
