@@ -61,25 +61,6 @@ class Script(scripts.Script):
                     value=_get_opt("cutoff_forge_method", "Slerp"),
                 )
 
-            # 5) Sanity & Cutoff ratio & Debug log（並べて表示）
-            with gr.Row():
-                sanity = gr.Checkbox(
-                    label="Sanity test (for debug)",
-                    value=_get_opt("cutoff_forge_sanity", False),  # 既定 False
-                )
-                # SanityがOFFのときは ratio を操作不可に
-                ratio_interactive = bool(_get_opt("cutoff_forge_sanity", False))
-                cut_ratio = gr.Slider(
-                    label="Cutoff ratio % (for Sanity test)",
-                    minimum=0, maximum=50, step=1,
-                    value=_get_opt("cutoff_forge_cut_ratio", 50),
-                    interactive=ratio_interactive,
-                )
-                debug_log = gr.Checkbox(
-                    label="Debug log",
-                    value=_get_opt("cutoff_forge_debug_log", False),
-                )
-
             # --- NEW: Source expansion (±N) ---
             with gr.Row():
                 src_n = gr.Slider(minimum=0, maximum=5, step=1,
@@ -109,7 +90,26 @@ class Script(scripts.Script):
                                   value=_get_opt("cutoff_forge_teaware_mode", "off"),
                                   label="TE-aware")
             teaware.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_teaware_mode", visible=False), teaware], outputs=[])
-
+            
+            # 5) Sanity & Cutoff ratio & Debug log（並べて表示）
+            with gr.Row():
+                sanity = gr.Checkbox(
+                    label="Sanity test (for debug)",
+                    value=_get_opt("cutoff_forge_sanity", False),  # 既定 False
+                )
+                # SanityがOFFのときは ratio を操作不可に
+                ratio_interactive = bool(_get_opt("cutoff_forge_sanity", False))
+                cut_ratio = gr.Slider(
+                    label="Cutoff ratio % (for Sanity test)",
+                    minimum=0, maximum=50, step=1,
+                    value=_get_opt("cutoff_forge_cut_ratio", 50),
+                    interactive=ratio_interactive,
+                )
+                debug_log = gr.Checkbox(
+                    label="Debug log",
+                    value=_get_opt("cutoff_forge_debug_log", False),
+                )
+                
             # 6) 注釈（最下部）
             gr.Markdown(
                 "<span style='font-size:12px; color:#888;'>When \"Debug log\" is enabled, internal logs are printed to console.</span>"
