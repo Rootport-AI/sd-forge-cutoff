@@ -282,6 +282,25 @@ def _install():
         vctx.set_rows_victim(enc_tag=enc_tag, rows_victim=rows_victim_sorted)
         vctx.set_dummy_text(enc_tag=enc_tag, dummy_text=dummy_text)
 
+        # 生成直前に L3 フックを idempotent に再適用（他所での上書き対策）
+        try:
+            from scripts.forge_cutoff import adapter_finalcond as _acf  # type: ignore
+        except Exception:
+            try:
+                import forge_farfetched_name  # dummy to force except chain if needed
+            except Exception:
+                _acf = None
+            try:
+                import importlib as _imp
+                _acf = _imp.import_module("forge_cutoff.adapter_finalcond")
+            except Exception:
+                _acf = None
+        if _acf is not None:
+            try:
+                _acf.try_install()
+            except Exception:
+                pass
+
         return out
 
     C.__call__ = _wrapped  # type: ignore
