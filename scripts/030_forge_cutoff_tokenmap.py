@@ -1,6 +1,3 @@
-# 030_forge_cutoff_tokenmap.py
-# ClassicTextProcessingEngine.__call__ をラップして、
-# 与えられた文字列と UI の target tokens を用い、正規の tokenizer で
 # 毎回（キャッシュ無し）サブ列一致→行インデックスを抽出し、
 # ・Source行（従来の rows） … 互換のため保持
 # ・Victim行（= 非ターゲット領域） … 中立化の適用対象（Exclude/Processing targets を反映）
@@ -8,7 +5,6 @@
 # を enc_tag ごとに揮発ストアへ保存する。
 
 import logging
-import time
 from typing import List, Tuple, Set
 
 log = logging.getLogger("forge_cutoff")
@@ -27,9 +23,6 @@ def _dbg(msg, *args):
             log.warning(msg, *args)
     except Exception:
         pass
-
-# --- ログ抑制：エンコーダ別・シグネチャ一致で抑制（時間依存なし） ---
-_last_sig_l2 = {"TE1": None, "TE2": None}
 
 try:
     from scripts.forge_cutoff import context_volatile as vctx
@@ -136,11 +129,11 @@ def _expand_source_hits_with_segments(hits: List[Tuple[int,int]], N: int, segs: 
             if a >= x and b <= y:
                 sa, sb = x, y
                 break
-    if sa is None:
-        sa, sb = 0, len(segs) and segs[-1][1] or (b + N)
-    la = max(sa, a - N)
-    rb = min(sb, b + N)
-    out.update(range(la, rb))
+        if sa is None:
+            sa, sb = 0, len(segs) and segs[-1][1] or (b + N)
+        la = max(sa, a - N)
+        rb = min(sb, b + N)
+        out.update(range(la, rb))
     return out
 
 def _match_words_rows(tokenizer, ids_text: List[int], words: List[str]) -> Set[int]:
@@ -267,36 +260,13 @@ def _install():
             # dummy_text の素朴生成（文字列置換）
             dummy_text = _build_dummy_text(text0, words_targets)
 
-            # --- ログ抑制：エンコーダ別・シグネチャ一致で抑制 ---
-            sig = (S_total, hits_total, len(rows_sorted), len(rows_victim_sorted), canon)
-            if _last_sig_l2.get(enc_tag) != sig:
-                _dbg("[cutoff:L2] enc=%s S_total=%d hits=%d targets=%s -> source_rows=%d victim_rows=%d",
-                     enc_tag, S_total, hits_total, canon, len(rows_sorted), len(rows_victim_sorted))
-                _last_sig_l2[enc_tag] = sig
+            _dbg("[cutoff:L2] enc=%s S_total=%d hits=%d targets=%s -> source_rows=%d victim_rows=%d",
+                 enc_tag, S_total, hits_total, canon, len(rows_sorted), len(rows_victim_sorted))
 
         # 揮発ストアへ保存
         vctx.set_rows(enc_tag=enc_tag, rows=rows_sorted, targets_canon=canon)
         vctx.set_rows_victim(enc_tag=enc_tag, rows_victim=rows_victim_sorted)
         vctx.set_dummy_text(enc_tag=enc_tag, dummy_text=dummy_text)
-
-        # 生成直前に L3 フックを idempotent に再適用（他所での上書き対策）
-        try:
-            from scripts.forge_cutoff import adapter_finalcond as _acf  # type: ignore
-        except Exception:
-            try:
-                import forge_farfetched_name  # dummy to force except chain if needed
-            except Exception:
-                _acf = None
-            try:
-                import importlib as _imp
-                _acf = _imp.import_module("forge_cutoff.adapter_finalcond")
-            except Exception:
-                _acf = None
-        if _acf is not None:
-            try:
-                _acf.try_install()
-            except Exception:
-                pass
 
         return out
 
