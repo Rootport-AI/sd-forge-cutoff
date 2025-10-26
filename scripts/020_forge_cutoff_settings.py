@@ -44,13 +44,16 @@ def on_ui_settings():
 
     # --- NEW: Source 拡張（±N） ---
     shared.opts.add_option("cutoff_forge_source_expand_n", shared.OptionInfo(
-        default=0, label="Source expansion (±N tokens)", section=section))
+        default=0, label="Source expansion (±N tokens)", component=gr.Slider,
+        component_args={"minimum": 0, "maximum": 5, "step": 1}, section=section))
 
     # --- NEW: 距離減衰（Off/Linear/Cosine）＋強度 ---
     shared.opts.add_option("cutoff_forge_decay_mode", shared.OptionInfo(
-        default="off", label="Distance decay mode (off/linear/cosine)", section=section))
+        default="off", label="Distance decay mode", component=gr.Radio,
+        component_args={"choices": ["off", "linear", "cosine"]}, section=section))
     shared.opts.add_option("cutoff_forge_decay_strength", shared.OptionInfo(
-        default=0.5, label="Distance decay strength (0..1)", section=section))
+        default=0.5, label="Decay strength (0..1)", component=gr.Slider,
+        component_args={"minimum": 0.0, "maximum": 1.0, "step": 0.05}, section=section))
 
     # --- NEW: Exclude/Specify（明示指定） ---
     shared.opts.add_option("cutoff_forge_exclude_tokens", shared.OptionInfo(
@@ -60,7 +63,8 @@ def on_ui_settings():
 
     # --- NEW: TE-aware ---
     shared.opts.add_option("cutoff_forge_teaware_mode", shared.OptionInfo(
-        default="off", label="TE-aware mode (off/safe_and)", section=section))
+        default="off", label="TE-aware mode", component=gr.Radio,
+        component_args={"choices": ["off", "safe_and"]}, section=section))
 
     return []
 
