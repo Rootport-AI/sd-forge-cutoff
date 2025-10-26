@@ -83,7 +83,7 @@ class Script(scripts.Script):
             # --- NEW: Source expansion (±N) ---
             with gr.Row():
                 src_n = gr.Slider(minimum=0, maximum=5, step=1,
-                                  value=_get_opt("cutoff_forge_source_expand_n", 0),
+                                  value=_get_opt("cutoff_forge_source_expand_n", 1),
                                   label="Source expansion (±N)")
             src_n.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_source_expand_n", visible=False), src_n], outputs=[])
 
