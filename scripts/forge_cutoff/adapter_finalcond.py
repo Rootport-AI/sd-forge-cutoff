@@ -179,7 +179,7 @@ def try_install():
         return True
 
     # process_cond のみをラップ（concat は削除）
-    if hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod.ConditionCrossAttn, "process_cond"):
+    if hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod.ConditionCrossAttn, "process_cond"):
         _orig_pc = condmod.ConditionCrossAttn.process_cond
 
         def _pc_wrapped(self, batch_size, device, **kwargs):
@@ -344,8 +344,7 @@ def try_install():
 
             return ret
 
-        condmod.ConditionCrossAttn.process_cond = _pc_wrapped  # type: ignore
-
+        condmod.ConditionCrossAttn.process_cond = _pc_wrapped 
         log.warning("[cutoff:pc] patched ConditionCrossAttn.process_cond")
     else:
         log.warning("[cutoff:pc] ConditionCrossAttn.process_cond not found; skip patch")
