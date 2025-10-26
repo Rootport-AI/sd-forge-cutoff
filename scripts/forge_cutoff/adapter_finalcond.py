@@ -13,7 +13,7 @@ if not log.handlers:
     h = logging.StreamHandler()
     h.setFormatter(logging.Formatter("[ForgeCutoffPoC] %(levelname)s: %(message)s"))
     log.addHandler(h)
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)  # デフォルトは抑制（DebugチェックON時のみ _dbg で出す）
 
 # ---- Debug guard ----
 def _dbg(msg, *args):
@@ -139,8 +139,8 @@ def _encode_dummy_same_engine(dummy_text: str, enc_tag: str, expect_H: int):
         # どれも一致しなければ None（→ 平均フォールバックへ）
         return None
     except Exception as e:
-        # 失敗は最低限ログとして残す
-        log.info("[cutoff:L3] dummy encode failed: %s", e)
+        # 失敗はデバッグ時のみ表示
+        _dbg("[cutoff:L3] dummy encode failed: %s", e)
         return None
 
 # ---------- patch ----------
@@ -148,7 +148,7 @@ def try_install():
     try:
         import backend.sampling.condition as condmod
     except Exception as e:
-        log.info("failed to import backend.sampling.condition: %s", e)
+        _dbg("failed to import backend.sampling.condition: %s", e)
         return False
 
     if getattr(condmod.ConditionCrossAttn, "__cutoff_wrapped__", False):
@@ -314,9 +314,9 @@ def try_install():
             return ret
 
         condmod.ConditionCrossAttn.process_cond = _pc_wrapped  # type: ignore
-        log.info("patched ConditionCrossAttn.process_cond (victim-only dummy interpolation)")
+        _dbg("patched ConditionCrossAttn.process_cond (victim-only dummy interpolation)")
     else:
-        log.info("ConditionCrossAttn.process_cond not found; skip patch")
+        _dbg("ConditionCrossAttn.process_cond not found; skip patch")
         return False
 
     setattr(condmod.ConditionCrossAttn, "__cutoff_wrapped__", True)

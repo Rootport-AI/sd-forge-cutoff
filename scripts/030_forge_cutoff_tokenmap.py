@@ -14,7 +14,7 @@ if not log.handlers:
     h = logging.StreamHandler()
     h.setFormatter(logging.Formatter("[ForgeCutoffPoC] %(levelname)s: %(message)s"))
     log.addHandler(h)
-log.setLevel(logging.INFO)
+log.setLevel(logging.WARNING)  # デフォルトは抑制（DebugチェックON時のみ _dbg で出す）
 
 def _dbg(msg, *args):
     """Verbose L2 log only when debug flag is ON"""
@@ -152,12 +152,12 @@ def _install():
     try:
         import backend.text_processing.classic_engine as ce
     except Exception as e:
-        log.info("classic_engine import failed: %s", e)
+        _dbg("classic_engine import failed: %s", e)
         return False
 
     C = getattr(ce, "ClassicTextProcessingEngine", None)
     if C is None or not hasattr(C, "__call__"):
-        log.info("ClassicTextProcessingEngine.__call__ not found")
+        _dbg("ClassicTextProcessingEngine.__call__ not found")
         return False
 
     if getattr(C, "__cutoff_tokenmap_wrapped__", False):
@@ -209,7 +209,7 @@ def _install():
                 ids_text, S_total = _flat_chunks(chunks)
                 tokenizer = getattr(self, "tokenizer", None)
             except Exception as e:
-                log.info("[cutoff:L2] tokenize failed enc=%s: %s", enc_tag, e)
+                _dbg("[cutoff:L2] tokenize failed enc=%s: %s", enc_tag, e)
                 # 失敗時は状態だけクリアして返す
                 vctx.set_rows(enc_tag=enc_tag, rows=[], targets_canon=canon)
                 vctx.set_rows_victim(enc_tag=enc_tag, rows_victim=[])
@@ -273,7 +273,7 @@ def _install():
 
     C.__call__ = _wrapped  # type: ignore
     setattr(C, "__cutoff_tokenmap_wrapped__", True)
-    log.info("patched ClassicTextProcessingEngine.__call__ for token mapping (victim & dummy)")
+    _dbg("patched ClassicTextProcessingEngine.__call__ for token mapping (victim & dummy)")
     return True
 
 _install()
