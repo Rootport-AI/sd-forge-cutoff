@@ -1,4 +1,5 @@
-﻿import logging, threading
+﻿# adapter_finalcond.py
+import logging, threading
 import time
 from typing import List, Tuple, Set
 
@@ -27,9 +28,8 @@ def _dbg(msg, *args):
     except Exception:
         pass
 
-# --- ログ抑制（同一署名 & クールダウン） ---
-_last_sig_pc = None
-_last_ts_pc = 0.0
+# --- ログ抑制：エンコーダ別・時間のみ（署名差には反応しない） ---
+_last_ts_pc = {"TE1": 0.0, "TE2": 0.0}
 _COOLDOWN = 1.5  # 秒
 
 # ---------- utils ----------
@@ -112,6 +112,7 @@ def _apply_rows_inplace(series, rows: List[int], method: str, alpha, pad_sel=Non
             mixed = mixed * torch.clamp(sel.norm(dim=-1, keepdim=True), min=eps)
             mixed = near * ((1.0 - a) * sel + a * pad_sel) + (1.0 - near) * mixed
         else:
+            # Lerp
             mixed = (1.0 - a) * sel + a * pad_sel
 
         series[:, row_idx, :] = mixed
@@ -327,14 +328,12 @@ def try_install():
                 else:
                     _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alpha_arg, pad_sel=pad_sel_all)
 
-                # --- ログ抑制（同一署名 & クールダウン） ---
-                global _last_sig_pc, _last_ts_pc
-                sig = (enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "")
+                # --- ログ抑制：同一パス内は抑制（パス開始/切替時のみ出力） ---
                 now = time.monotonic()
-                if sig != _last_sig_pc or (now - _last_ts_pc) > _COOLDOWN:
+                if (now - _last_ts_pc.get(enc, 0.0)) > _COOLDOWN:
                     _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
                          enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
-                    _last_sig_pc, _last_ts_pc = sig, now
+                    _last_ts_pc[enc] = now
             finally:
                 _leave()
                 try:

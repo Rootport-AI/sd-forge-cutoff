@@ -1,3 +1,4 @@
+# 030_forge_cutoff_tokenmap.py
 # ClassicTextProcessingEngine.__call__ をラップして、
 # 与えられた文字列と UI の target tokens を用い、正規の tokenizer で
 # 毎回（キャッシュ無し）サブ列一致→行インデックスを抽出し、
@@ -27,9 +28,8 @@ def _dbg(msg, *args):
     except Exception:
         pass
 
-# --- ログ抑制（同一署名 & クールダウン） ---
-_last_sig_l2 = None
-_last_ts_l2 = 0.0
+# --- ログ抑制：エンコーダ別・時間のみ（署名差には反応しない） ---
+_last_ts_l2 = {"TE1": 0.0, "TE2": 0.0}
 _COOLDOWN = 1.5  # 秒
 
 try:
@@ -268,14 +268,12 @@ def _install():
             # dummy_text の素朴生成（文字列置換）
             dummy_text = _build_dummy_text(text0, words_targets)
 
-            # --- ログ抑制（同一署名 & クールダウン） ---
-            global _last_sig_l2, _last_ts_l2
-            sig = (enc_tag, S_total, hits_total, len(rows_sorted), len(rows_victim_sorted), canon)
+            # --- ログ抑制：同一パス内は抑制。パス開始や Hires 切替等で一定時間空けば再度出力 ---
             now = time.monotonic()
-            if sig != _last_sig_l2 or (now - _last_ts_l2) > _COOLDOWN:
+            if (now - _last_ts_l2.get(enc_tag, 0.0)) > _COOLDOWN:
                 _dbg("[cutoff:L2] enc=%s S_total=%d hits=%d targets=%s -> source_rows=%d victim_rows=%d",
                      enc_tag, S_total, hits_total, canon, len(rows_sorted), len(rows_victim_sorted))
-                _last_sig_l2, _last_ts_l2 = sig, now
+                _last_ts_l2[enc_tag] = now
 
         # 揮発ストアへ保存
         vctx.set_rows(enc_tag=enc_tag, rows=rows_sorted, targets_canon=canon)
