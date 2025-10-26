@@ -55,25 +55,42 @@ def _select_rows_sanity(S: int) -> List[int]:
     k = int(S * ratio / 100.0)
     return list(range(max(0, S - k), S)) if k > 0 else []
 
-def _apply_rows_inplace(series, rows: List[int], method: str, alpha: float, pad_sel=None):
+def _apply_rows_inplace(series, rows: List[int], method: str, alpha, pad_sel=None):
+    """
+    rows で指定された行に対して一括適用する。
+    alpha は単一値でも行ごとの配列でも良い（[K] / [1,K,1] / 単一値）。
+    """
     import torch
     if not (_is_tensor(series) and series.dim() == 3) or not rows:
         return
-    try:
-        alpha = float(alpha)
-    except Exception:
-        alpha = 0.6
-    alpha = max(0.0, min(1.0, alpha))
 
     with torch.inference_mode():
         B, S, H = int(series.shape[0]), int(series.shape[1]), int(series.shape[2])
         row_idx = torch.as_tensor(rows, device=series.device, dtype=torch.long)
         sel     = series[:, row_idx, :]                    # [B,K,H]
 
-        # フォールバック（従来互換）：pad_selが無い場合のみ平均へ
+        # フォールバック（従来互換）：pad_selが無い場合のみ平均へ（ここで一度だけ計算）
         if pad_sel is None:
             pad_vec = series.mean(dim=1, keepdim=True)     # [B,1,H]
             pad_sel = pad_vec.expand(-1, row_idx.numel(), -1)
+
+        # alpha を [B,K,1] にブロードキャストできるテンソルへ
+        if isinstance(alpha, (list, tuple)):
+            a = torch.as_tensor(alpha, device=series.device, dtype=sel.dtype).view(1, -1, 1)
+        elif _is_tensor(alpha):
+            a = alpha
+            if a.dim() == 1:  # [K] → [1,K,1]
+                a = a.view(1, -1, 1)
+        else:
+            # 単一値（互換）：float に正規化
+            try:
+                aval = float(alpha)
+            except Exception:
+                aval = 0.6
+            aval = max(0.0, min(1.0, aval))
+            a = torch.tensor(aval, device=series.device, dtype=sel.dtype).view(1, 1, 1)
+        # [B,K,1] に拡張
+        a = a.expand(sel.shape[0], sel.shape[1], 1)
 
         if method == "Slerp":
             eps = 1e-7
@@ -83,13 +100,13 @@ def _apply_rows_inplace(series, rows: List[int], method: str, alpha: float, pad_
             omega = torch.acos(dot)
             sin_omega = torch.sin(omega).clamp(min=eps)
             near = (sin_omega < 1e-4).float()
-            t1 = torch.sin((1 - alpha) * omega) / sin_omega
-            t2 = torch.sin(alpha * omega) / sin_omega
+            t1 = torch.sin((1 - a) * omega) / sin_omega
+            t2 = torch.sin(a * omega) / sin_omega
             mixed = t1 * o + t2 * p
             mixed = mixed * torch.clamp(sel.norm(dim=-1, keepdim=True), min=eps)
-            mixed = near * ((1.0 - alpha) * sel + alpha * pad_sel) + (1.0 - near) * mixed
+            mixed = near * ((1.0 - a) * sel + a * pad_sel) + (1.0 - near) * mixed
         else:
-            mixed = (1.0 - alpha) * sel + alpha * pad_sel
+            mixed = (1.0 - a) * sel + a * pad_sel
 
         series[:, row_idx, :] = mixed
 
@@ -156,7 +173,7 @@ def try_install():
         return True
 
     # process_cond のみをラップ（concat は削除）
-    if hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod.ConditionCrossAttn, "process_cond"):
+    if hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod, "ConditionCrossAttn") and hasattr(condmod.ConditionCrossAttn, "process_cond"):
         _orig_pc = condmod.ConditionCrossAttn.process_cond
 
         def _pc_wrapped(self, batch_size, device, **kwargs):
@@ -246,7 +263,7 @@ def try_install():
                 return ret
 
             # ダミー（pad）を用意
-            pad_sel = None
+            pad_sel_all = None
             dummy_text = vctx.get_dummy_text(enc)
 
             try:
@@ -268,6 +285,11 @@ def try_install():
                 if series_pad is not None:
                     if series_pad.device != series.device or series_pad.dtype != series.dtype:
                         series_pad = series_pad.to(device=series.device, dtype=series.dtype, non_blocking=True)
+                    # 全 Victim 行の pad を一括抽出
+                    row_idx_all = torch.as_tensor(rows_victim, device=series.device, dtype=torch.long)
+                    pad_sel_all = series_pad[:, row_idx_all, :]
+                else:
+                    pad_sel_all = None  # 平均は _apply_rows_inplace 内で一度だけ計算
 
                 # 行ごとの α_i を準備（距離減衰 Off の場合は一律 α）
                 alphas_rows: List[float] = []
@@ -290,18 +312,8 @@ def try_install():
                         a_i = max(0.15, min(1.0, a_i))
                         alphas_rows.append(a_i)
 
-                # Victim 行にのみ適用（行ごと α_i）
-                if series_pad is not None:
-                    # 行ごとの pad 抜き出しは apply 内の切り出しで対応（単行ずつ）
-                    pass
-
-                for r, a_i in zip(rows_victim, alphas_rows):
-                    if series_pad is not None:
-                        row_idx = torch.as_tensor([r], device=series.device, dtype=torch.long)
-                        pad_sel = series_pad[:, row_idx, :]
-                    else:
-                        pad_sel = None
-                    _apply_rows_inplace(series, rows=[r], method=method, alpha=a_i, pad_sel=pad_sel)
+                # ---- まとめて一発適用（順序非依存）----
+                _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alphas_rows, pad_sel=pad_sel_all)
 
                 _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
                      enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
