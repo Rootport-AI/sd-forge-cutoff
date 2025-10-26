@@ -20,5 +20,5 @@ def _force_enable_off(_app=None, *_args, **_kwargs):
         # 既定値の設定に失敗しても起動自体は継続
         pass
 
-# WebUI起動後、一度だけ実行
-script_callbacks.on_app_started(_force_enable_off)
+# UIを作る前に値を入れておく（初期表示に間に合わせる）
+script_callbacks.on_before_ui(_force_enable_off)

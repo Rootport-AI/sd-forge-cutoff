@@ -183,7 +183,7 @@ def _install():
             targets_raw = str(getattr(opts, "cutoff_forge_targets", "") or "")
             excl_raw    = str(getattr(opts, "cutoff_forge_exclude_tokens", "") or "")
             ponly_raw   = str(getattr(opts, "cutoff_forge_processing_targets", "") or "")
-            expand_n = int(getattr(opts, "cutoff_forge_source_expand_n", 0) or 0)
+            expand_n = int(getattr(opts, "cutoff_forge_source_expand_n", 1) or 1)
         except Exception:
             targets_raw, excl_raw, ponly_raw, expand_n = "", "", "", 0
 
