@@ -345,9 +345,10 @@ def try_install():
             return ret
 
         condmod.ConditionCrossAttn.process_cond = _pc_wrapped  # type: ignore
-        _dbg("patched ConditionCrossAttn.process_cond (victim-only dummy interpolation)")
+
+        log.warning("[cutoff:pc] patched ConditionCrossAttn.process_cond")
     else:
-        _dbg("ConditionCrossAttn.process_cond not found; skip patch")
+        log.warning("[cutoff:pc] ConditionCrossAttn.process_cond not found; skip patch")
         return False
 
     setattr(condmod.ConditionCrossAttn, "__cutoff_wrapped__", True)
