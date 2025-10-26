@@ -10,7 +10,7 @@ def _force_enable_off(_app=None, *_args, **_kwargs):
         opts.cutoff_forge_enable = False
 
         # --- NEW: 本拡張の追加オプション既定値を明示 ---
-        opts.cutoff_forge_source_expand_n = 0
+        opts.cutoff_forge_source_expand_n = 1
         opts.cutoff_forge_decay_mode = "off"
         opts.cutoff_forge_decay_strength = 0.5
         opts.cutoff_forge_exclude_tokens = ""

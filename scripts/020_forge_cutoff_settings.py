@@ -44,7 +44,7 @@ def on_ui_settings():
 
     # --- NEW: Source 拡張（±N） ---
     shared.opts.add_option("cutoff_forge_source_expand_n", shared.OptionInfo(
-        default=0, label="Source expansion (±N tokens)", component=gr.Slider,
+        default=1, label="Source expansion (±N tokens)", component=gr.Slider,
         component_args={"minimum": 0, "maximum": 5, "step": 1}, section=section))
 
     # --- NEW: 距離減衰（Off/Linear/Cosine）＋強度 ---
