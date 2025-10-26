@@ -8,6 +8,8 @@ def _force_enable_off(_app=None, *_args, **_kwargs):
     try:
         # 起動時に毎回 OFF スタート
         opts.cutoff_forge_enable = False
+
+        # --- NEW: 本拡張の追加オプション既定値を明示 ---
         opts.cutoff_forge_source_expand_n = 0
         opts.cutoff_forge_decay_mode = "off"
         opts.cutoff_forge_decay_strength = 0.5
@@ -15,6 +17,7 @@ def _force_enable_off(_app=None, *_args, **_kwargs):
         opts.cutoff_forge_processing_targets = ""
         opts.cutoff_forge_teaware_mode = "off"
     except Exception:
+        # 既定値の設定に失敗しても起動自体は継続
         pass
 
 # WebUI起動後、一度だけ実行
