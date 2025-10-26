@@ -1,4 +1,5 @@
 ﻿import logging, threading
+import time
 from typing import List, Tuple, Set
 
 from modules.shared import opts
@@ -25,6 +26,11 @@ def _dbg(msg, *args):
             log.warning(msg, *args)
     except Exception:
         pass
+
+# --- ログ抑制（同一署名 & クールダウン） ---
+_last_sig_pc = None
+_last_ts_pc = 0.0
+_COOLDOWN = 1.5  # 秒
 
 # ---------- utils ----------
 
@@ -321,8 +327,14 @@ def try_install():
                 else:
                     _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alpha_arg, pad_sel=pad_sel_all)
 
-                _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
-                     enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
+                # --- ログ抑制（同一署名 & クールダウン） ---
+                global _last_sig_pc, _last_ts_pc
+                sig = (enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "")
+                now = time.monotonic()
+                if sig != _last_sig_pc or (now - _last_ts_pc) > _COOLDOWN:
+                    _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
+                         enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
+                    _last_sig_pc, _last_ts_pc = sig, now
             finally:
                 _leave()
                 try:
