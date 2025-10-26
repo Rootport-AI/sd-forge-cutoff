@@ -28,9 +28,8 @@ def _dbg(msg, *args):
     except Exception:
         pass
 
-# --- ログ抑制：エンコーダ別・時間のみ（署名差には反応しない） ---
-_last_ts_l2 = {"TE1": 0.0, "TE2": 0.0}
-_COOLDOWN = 1.5  # 秒
+# --- ログ抑制：エンコーダ別・シグネチャ一致で抑制（時間依存なし） ---
+_last_sig_l2 = {"TE1": None, "TE2": None}
 
 try:
     from scripts.forge_cutoff import context_volatile as vctx
@@ -137,11 +136,11 @@ def _expand_source_hits_with_segments(hits: List[Tuple[int,int]], N: int, segs: 
             if a >= x and b <= y:
                 sa, sb = x, y
                 break
-        if sa is None:
-            sa, sb = 0, len(segs) and segs[-1][1] or (b + N)
-        la = max(sa, a - N)
-        rb = min(sb, b + N)
-        out.update(range(la, rb))
+    if sa is None:
+        sa, sb = 0, len(segs) and segs[-1][1] or (b + N)
+    la = max(sa, a - N)
+    rb = min(sb, b + N)
+    out.update(range(la, rb))
     return out
 
 def _match_words_rows(tokenizer, ids_text: List[int], words: List[str]) -> Set[int]:
@@ -268,12 +267,12 @@ def _install():
             # dummy_text の素朴生成（文字列置換）
             dummy_text = _build_dummy_text(text0, words_targets)
 
-            # --- ログ抑制：同一パス内は抑制。パス開始や Hires 切替等で一定時間空けば再度出力 ---
-            now = time.monotonic()
-            if (now - _last_ts_l2.get(enc_tag, 0.0)) > _COOLDOWN:
+            # --- ログ抑制：エンコーダ別・シグネチャ一致で抑制 ---
+            sig = (S_total, hits_total, len(rows_sorted), len(rows_victim_sorted), canon)
+            if _last_sig_l2.get(enc_tag) != sig:
                 _dbg("[cutoff:L2] enc=%s S_total=%d hits=%d targets=%s -> source_rows=%d victim_rows=%d",
                      enc_tag, S_total, hits_total, canon, len(rows_sorted), len(rows_victim_sorted))
-                _last_ts_l2[enc_tag] = now
+                _last_sig_l2[enc_tag] = sig
 
         # 揮発ストアへ保存
         vctx.set_rows(enc_tag=enc_tag, rows=rows_sorted, targets_canon=canon)

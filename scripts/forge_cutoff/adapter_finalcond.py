@@ -28,9 +28,8 @@ def _dbg(msg, *args):
     except Exception:
         pass
 
-# --- ログ抑制：エンコーダ別・時間のみ（署名差には反応しない） ---
-_last_ts_pc = {"TE1": 0.0, "TE2": 0.0}
-_COOLDOWN = 1.5  # 秒
+# --- ログ抑制：エンコーダ別・シグネチャ一致で抑制（時間依存なし） ---
+_last_sig_pc = {"TE1": None, "TE2": None}
 
 # ---------- utils ----------
 
@@ -328,12 +327,13 @@ def try_install():
                 else:
                     _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alpha_arg, pad_sel=pad_sel_all)
 
-                # --- ログ抑制：同一パス内は抑制（パス開始/切替時のみ出力） ---
-                now = time.monotonic()
-                if (now - _last_ts_pc.get(enc, 0.0)) > _COOLDOWN:
+                # --- ログ抑制：エンコーダ別・シグネチャ一致で抑制 ---
+                base_alpha = float(alpha)
+                sig = (S, len(rows_victim), method, base_alpha, str(decay_mode), vctx.get_targets_canon() or "")
+                if _last_sig_pc.get(enc) != sig:
                     _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
-                         enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
-                    _last_ts_pc[enc] = now
+                         enc, S, len(rows_victim), method, base_alpha, decay_mode, vctx.get_targets_canon() or "<empty>")
+                    _last_sig_pc[enc] = sig
             finally:
                 _leave()
                 try:
