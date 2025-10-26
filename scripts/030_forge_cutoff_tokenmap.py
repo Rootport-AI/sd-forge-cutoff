@@ -2,7 +2,7 @@
 # 与えられた文字列と UI の target tokens を用い、正規の tokenizer で
 # 毎回（キャッシュ無し）サブ列一致→行インデックスを抽出し、
 # ・Source行（従来の rows） … 互換のため保持
-# ・Victim行（= 非ターゲット領域） … 中立化の適用対象
+# ・Victim行（= 非ターゲット領域） … 中立化の適用対象（Exclude/Processing targets を反映）
 # ・dummy_text（= Target を PAD トークン "_" に置換した文字列）
 # を enc_tag ごとに揮発ストアへ保存する。
 
@@ -89,6 +89,65 @@ def _build_dummy_text(text: str, words: List[str]) -> str:
         s = re.sub(pat, "_", s)
     return s
 
+def _collect_segment_bounds(tokenizer, ids_text: List[int]) -> List[Tuple[int, int]]:
+    """
+    句境界のヒューリスティック検出。BPE列上で ',', ';', ' and ', ' with ', ' of ' に一致する位置を境界として
+    セグメント [beg, end) のリストを返す。見つからない場合は全体を単一セグメントにする。
+    """
+    bounds = [0]
+    seps = [",", " ,", ";", " ;", " and", " with", " of"]
+    for sep in seps:
+        try:
+            ids_sep_vars = _encode_variants(tokenizer, sep)
+        except Exception:
+            ids_sep_vars = []
+        for ids_sep in ids_sep_vars:
+            for st, ed in _find_subseq_all(ids_text, ids_sep):
+                bounds.append(ed)  # セパレータの直後から新セグメント
+    bounds = sorted(set([b for b in bounds if 0 <= b <= len(ids_text)]))
+    segs: List[Tuple[int, int]] = []
+    if not bounds or bounds[0] != 0:
+        bounds = [0] + bounds
+    for i in range(len(bounds)):
+        a = bounds[i]
+        b = bounds[i+1] if i+1 < len(bounds) else len(ids_text)
+        if a < b:
+            segs.append((a, b))
+    return segs
+
+def _expand_source_hits_with_segments(hits: List[Tuple[int,int]], N: int, segs: List[Tuple[int,int]]) -> Set[int]:
+    """
+    ヒット範囲を±Nだけ拡張。ただし所属セグメントを越えない。
+    """
+    out: Set[int] = set()
+    if N <= 0:
+        for a, b in hits:
+            out.update(range(a, b))
+        return out
+    for (a, b) in hits:
+        sa, sb = None, None
+        for (x, y) in segs:
+            if a >= x and b <= y:
+                sa, sb = x, y
+                break
+        if sa is None:
+            sa, sb = 0, len(segs) and segs[-1][1] or (b + N)
+        la = max(sa, a - N)
+        rb = min(sb, b + N)
+        out.update(range(la, rb))
+    return out
+
+def _match_words_rows(tokenizer, ids_text: List[int], words: List[str]) -> Set[int]:
+    out: Set[int] = set()
+    if not words:
+        return out
+    for w in words:
+        needles = _encode_variants(tokenizer, w)
+        for nd in needles:
+            for st, ed in _find_subseq_all(ids_text, nd):
+                out.update(range(st, ed))
+    return out
+
 def _install():
     try:
         import backend.text_processing.classic_engine as ce
@@ -117,14 +176,20 @@ def _install():
         except Exception:
             enc_tag = "TE1"
 
-        # UI の targets
+        # UI の targets / Exclude / Processing targets / Source拡張
         try:
             from modules.shared import opts
             targets_raw = str(getattr(opts, "cutoff_forge_targets", "") or "")
+            excl_raw    = str(getattr(opts, "cutoff_forge_exclude_tokens", "") or "")
+            ponly_raw   = str(getattr(opts, "cutoff_forge_processing_targets", "") or "")
+            expand_n    = int(getattr(opts, "cutoff_forge_source_expand_n", 0) or 0)
         except Exception:
-            targets_raw = ""
+            targets_raw, excl_raw, ponly_raw, expand_n = "", "", "", 0
+
         canon = _canon_targets(targets_raw)
-        words = _norm_words_csv(canon)
+        words_targets = _norm_words_csv(canon)
+        words_excl    = _norm_words_csv(excl_raw.lower())
+        words_ponly   = _norm_words_csv(ponly_raw.lower())
 
         # 入力テキスト（Forge 実測で texts_len=1）
         text0 = ""
@@ -151,31 +216,50 @@ def _install():
                 vctx.set_dummy_text(enc_tag=enc_tag, dummy_text="")
                 return out
 
-            # Source行（= ターゲット一致区間＋前後1）
-            rows: Set[int] = set()
+            # ターゲット一致（BPE部分列一致）
+            hits: List[Tuple[int,int]] = []
+            rows_source: Set[int] = set()
             if tokenizer is not None and ids_text:
-                for w in words:
+                for w in words_targets:
                     needles = _encode_variants(tokenizer, w)
                     hit_local = 0
                     for nd in needles:
                         hs = _find_subseq_all(ids_text, nd)
+                        if hs:
+                            hits.extend(hs)
                         for st, ed in hs:
                             for r in range(st, ed):
-                                rows.add(r)
-                            rows.add(max(0, st-1))
-                            rows.add(min(S_total-1, ed))
+                                rows_source.add(r)
                         hit_local += len(hs)
                     hits_total += hit_local
 
-            rows_sorted = sorted(rows)
+            # 句境界ヒューリスティック ＋ Source拡張（±N; セグメント越境禁止）
+            if expand_n > 0 and ids_text and tokenizer is not None and hits:
+                segs = _collect_segment_bounds(tokenizer, ids_text)
+                rows_source = _expand_source_hits_with_segments(hits, expand_n, segs)
 
-            # Victim行 = [0..S_total-1] \ Source行
+            rows_sorted = sorted(rows_source)
+
+            # Victim行（初期） = [0..S_total-1] \ Source行
             if S_total > 0:
                 all_rows = set(range(S_total))
-                rows_victim_sorted = sorted(all_rows - rows)
+                rows_victim = set(all_rows - rows_source)
+            else:
+                rows_victim = set()
+
+            # Exclude / Processing targets を反映（BPE一致）
+            if tokenizer is not None and ids_text:
+                rows_excl  = _match_words_rows(tokenizer, ids_text, words_excl) if words_excl else set()
+                rows_pt    = _match_words_rows(tokenizer, ids_text, words_ponly) if words_ponly else set()
+                if rows_pt:
+                    rows_victim = rows_victim.intersection(rows_pt)
+                if rows_excl:
+                    rows_victim = rows_victim - rows_excl
+
+            rows_victim_sorted = sorted(rows_victim)
 
             # dummy_text の素朴生成（文字列置換）
-            dummy_text = _build_dummy_text(text0, words)
+            dummy_text = _build_dummy_text(text0, words_targets)
 
             _dbg("[cutoff:L2] enc=%s S_total=%d hits=%d targets=%s -> source_rows=%d victim_rows=%d",
                  enc_tag, S_total, hits_total, canon, len(rows_sorted), len(rows_victim_sorted))

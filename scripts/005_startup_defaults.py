@@ -7,7 +7,13 @@ from modules.shared import opts
 def _force_enable_off(_app=None, *_args, **_kwargs):
     try:
         # 起動時に毎回 OFF スタート
-        setattr(opts, "cutoff_forge_enable", False)
+        opts.cutoff_forge_enable = False
+        opts.cutoff_forge_source_expand_n = 0
+        opts.cutoff_forge_decay_mode = "off"
+        opts.cutoff_forge_decay_strength = 0.5
+        opts.cutoff_forge_exclude_tokens = ""
+        opts.cutoff_forge_processing_targets = ""
+        opts.cutoff_forge_teaware_mode = "off"
     except Exception:
         pass
 

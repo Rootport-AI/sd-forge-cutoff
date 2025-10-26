@@ -42,6 +42,28 @@ def on_ui_settings():
     shared.opts.add_option("cutoff_forge_debug_log", shared.OptionInfo(
         default=False, label="Debug log (verbose internal logs; OFF by default)", section=section))
 
+    # --- NEW: Source 拡張（±N） ---
+    shared.opts.add_option("cutoff_forge_source_expand_n", shared.OptionInfo(
+        default=0, label="Source expansion (±N tokens)", section=section))
+
+    # --- NEW: 距離減衰（Off/Linear/Cosine）＋強度 ---
+    shared.opts.add_option("cutoff_forge_decay_mode", shared.OptionInfo(
+        default="off", label="Distance decay mode (off/linear/cosine)", section=section))
+    shared.opts.add_option("cutoff_forge_decay_strength", shared.OptionInfo(
+        default=0.5, label="Distance decay strength (0..1)", section=section))
+
+    # --- NEW: Exclude/Specify（明示指定） ---
+    shared.opts.add_option("cutoff_forge_exclude_tokens", shared.OptionInfo(
+        default="", label="Exclude from processing (CSV)", section=section))
+    shared.opts.add_option("cutoff_forge_processing_targets", shared.OptionInfo(
+        default="", label="Processing targets (CSV)", section=section))
+
+    # --- NEW: TE-aware ---
+    shared.opts.add_option("cutoff_forge_teaware_mode", shared.OptionInfo(
+        default="off", label="TE-aware mode (off/safe_and)", section=section))
+
+    return []
+
 try:
     import modules.script_callbacks as script_callbacks
     script_callbacks.on_ui_settings(on_ui_settings)

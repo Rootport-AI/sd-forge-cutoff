@@ -80,6 +80,36 @@ class Script(scripts.Script):
                     value=_get_opt("cutoff_forge_debug_log", False),
                 )
 
+            # --- NEW: Source expansion (±N) ---
+            with gr.Row():
+                src_n = gr.Slider(minimum=0, maximum=5, step=1,
+                                  value=_get_opt("cutoff_forge_source_expand_n", 0),
+                                  label="Source expansion (±N)")
+            src_n.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_source_expand_n", visible=False), src_n], outputs=[])
+
+            # --- NEW: Distance decay ---
+            with gr.Row():
+                decay_mode = gr.Dropdown(choices=["off", "linear", "cosine"],
+                                         value=_get_opt("cutoff_forge_decay_mode", "off"),
+                                         label="Distance decay")
+                decay_strength = gr.Slider(minimum=0.0, maximum=1.0, step=0.05,
+                                           value=_get_opt("cutoff_forge_decay_strength", 0.5),
+                                           label="Decay strength")
+            decay_mode.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_decay_mode", visible=False), decay_mode], outputs=[])
+            decay_strength.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_decay_strength", visible=False), decay_strength], outputs=[])
+
+            # --- NEW: Exclude/Specify ---
+            excl = gr.Textbox(value=_get_opt("cutoff_forge_exclude_tokens", ""), lines=1, label="Exclude from processing (CSV)")
+            ponly = gr.Textbox(value=_get_opt("cutoff_forge_processing_targets", ""), lines=1, label="Processing targets (CSV)")
+            excl.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_exclude_tokens", visible=False), excl], outputs=[])
+            ponly.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_processing_targets", visible=False), ponly], outputs=[])
+
+            # --- NEW: TE-aware ---
+            teaware = gr.Dropdown(choices=["off", "safe_and"],
+                                  value=_get_opt("cutoff_forge_teaware_mode", "off"),
+                                  label="TE-aware")
+            teaware.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_teaware_mode", visible=False), teaware], outputs=[])
+
             # 6) 注釈（最下部）
             gr.Markdown(
                 "<span style='font-size:12px; color:#888;'>When \"Debug log\" is enabled, internal logs are printed to console.</span>"

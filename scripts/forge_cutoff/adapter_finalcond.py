@@ -1,5 +1,5 @@
 ﻿import logging, threading
-from typing import List
+from typing import List, Tuple, Set
 
 from modules.shared import opts
 
@@ -198,8 +198,9 @@ def try_install():
             except Exception:
                 pass
 
-            rows_apply = _select_rows_sanity(S) if sanity else vctx.get_rows_victim(enc)
-            if not rows_apply:
+            # Victim（初期）
+            rows_victim_enc = _select_rows_sanity(S) if sanity else vctx.get_rows_victim(enc)
+            if not rows_victim_enc:
                 _dbg("[cutoff:pc] enc=%s S=%d victim_rows=0 targets=%s", enc, S, vctx.get_targets_canon() or "<empty>")
                 return ret
 
@@ -208,6 +209,42 @@ def try_install():
                 _dbg("[cutoff:pc] re-entrancy detected; skip")
                 return ret
 
+            # TE-aware mode
+            try:
+                teaware = str(getattr(opts, "cutoff_forge_teaware_mode", "off") or "off")
+            except Exception:
+                teaware = "off"
+
+            # Distance decay 設定
+            try:
+                decay_mode = str(getattr(opts, "cutoff_forge_decay_mode", "off") or "off")
+                decay_strength = float(getattr(opts, "cutoff_forge_decay_strength", 0.5) or 0.5)
+            except Exception:
+                decay_mode, decay_strength = "off", 0.5
+
+            # Source行（距離計算に使用）— vctx が未実装ならフォールバック
+            try:
+                rows_source_enc = set(vctx.get_rows(enc) or [])
+            except Exception:
+                rows_source_enc = set()
+
+            # TE-aware Safe(AND) の場合、両TEの Victim 交差を採用
+            if teaware == "safe_and":
+                try:
+                    v1 = set(vctx.get_rows_victim("TE1") or [])
+                    v2 = set(vctx.get_rows_victim("TE2") or [])
+                    rows_victim = sorted(v1.intersection(v2))
+                except Exception:
+                    rows_victim = rows_victim_enc  # 取得失敗時はそのまま
+            else:
+                # 現状どおり：この enc に対して適用
+                rows_victim = rows_victim_enc
+
+            if not rows_victim:
+                _dbg("[cutoff:pc] victim_rows empty after TE-aware filtering; skip")
+                return ret
+
+            # ダミー（pad）を用意
             pad_sel = None
             dummy_text = vctx.get_dummy_text(enc)
 
@@ -225,18 +262,48 @@ def try_install():
                     except Exception:
                         series_pad = None
 
+                import math
                 import torch
                 if series_pad is not None:
                     if series_pad.device != series.device or series_pad.dtype != series.dtype:
                         series_pad = series_pad.to(device=series.device, dtype=series.dtype, non_blocking=True)
-                    row_idx = torch.as_tensor(rows_apply, device=series.device, dtype=torch.long)
-                    pad_sel = series_pad[:, row_idx, :]
 
-                # Victim 行にのみ適用（Sourceは触らない）
-                _apply_rows_inplace(series, rows=rows_apply, method=method, alpha=alpha, pad_sel=pad_sel)
+                # 行ごとの α_i を準備（距離減衰 Off の場合は一律 α）
+                alphas_rows: List[float] = []
+                if decay_mode == "off" or (not rows_source_enc):
+                    alphas_rows = [max(0.15, min(1.0, float(alpha))) for _ in rows_victim]
+                else:
+                    # Dmax を簡便に：Source 行の最小～最大の広がり
+                    Smin = min(rows_source_enc) if rows_source_enc else 0
+                    Smax = max(rows_source_enc) if rows_source_enc else (S - 1)
+                    Dmax = max(1, (Smax - Smin) or 1)
+                    for i in rows_victim:
+                        d = min((abs(i - j) for j in rows_source_enc)) if rows_source_enc else Dmax
+                        t = max(0.0, min(1.0, d / Dmax))
+                        if decay_mode == "linear":
+                            scale = (1.0 - t)
+                        else:
+                            # cosine
+                            scale = 0.5 * (1.0 + math.cos(math.pi * t))
+                        a_i = float(alpha) * float(decay_strength) * float(scale)
+                        a_i = max(0.15, min(1.0, a_i))
+                        alphas_rows.append(a_i)
 
-                _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d first=%d last=%d method=%s alpha=%.2f targets=%s",
-                     enc, S, len(rows_apply), rows_apply[0], rows_apply[-1], method, alpha, vctx.get_targets_canon() or "<empty>")
+                # Victim 行にのみ適用（行ごと α_i）
+                if series_pad is not None:
+                    # 行ごとの pad 抜き出しは apply 内の切り出しで対応（単行ずつ）
+                    pass
+
+                for r, a_i in zip(rows_victim, alphas_rows):
+                    if series_pad is not None:
+                        row_idx = torch.as_tensor([r], device=series.device, dtype=torch.long)
+                        pad_sel = series_pad[:, row_idx, :]
+                    else:
+                        pad_sel = None
+                    _apply_rows_inplace(series, rows=[r], method=method, alpha=a_i, pad_sel=pad_sel)
+
+                _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
+                     enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
             finally:
                 _leave()
                 try:
