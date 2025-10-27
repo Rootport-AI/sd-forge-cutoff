@@ -27,25 +27,16 @@ def on_ui_settings():
     shared.opts.add_option("cutoff_forge_targets", shared.OptionInfo(
         default="", label="Target tokens (comma separated)", section=section))
 
-    # Cutoff ratio（Sanity用）
-    shared.opts.add_option("cutoff_forge_cut_ratio", shared.OptionInfo(
-        default=50, label="Cutoff ratio % (tail rows; Sanity only)", component=gr.Slider,
-        component_args={"minimum": 0, "maximum": 50, "step": 1}, section=section))
-
     # TE適用
     shared.opts.add_option("cutoff_forge_apply_te1", shared.OptionInfo(
         default=False, label="Apply to TE1 (SD/SDXL)", section=section))
     shared.opts.add_option("cutoff_forge_apply_te2", shared.OptionInfo(
         default=True, label="Apply to TE2 (SDXL)", section=section))
 
-    # Debug log（既定OFF）
-    shared.opts.add_option("cutoff_forge_debug_log", shared.OptionInfo(
-        default=False, label="Debug log (verbose internal logs; OFF by default)", section=section))
-
     # --- NEW: Source 拡張（±N） ---
     shared.opts.add_option("cutoff_forge_source_expand_n", shared.OptionInfo(
         default=1, label="Source expansion (±N tokens)", component=gr.Slider,
-        component_args={"minimum": 0, "maximum": 5, "step": 1}, section=section))
+        component_args={"minimum": 0, "maximum": 6, "step": 1}, section=section))
 
     # --- NEW: 距離減衰（Off/Linear/Cosine）＋強度 ---
     shared.opts.add_option("cutoff_forge_decay_mode", shared.OptionInfo(
@@ -65,6 +56,15 @@ def on_ui_settings():
     shared.opts.add_option("cutoff_forge_teaware_mode", shared.OptionInfo(
         default="off", label="TE-aware mode", component=gr.Radio,
         component_args={"choices": ["off", "safe_and"]}, section=section))
+
+    # Cutoff ratio（Sanity用）
+    shared.opts.add_option("cutoff_forge_cut_ratio", shared.OptionInfo(
+        default=50, label="Cutoff ratio % (tail rows; Sanity only)", component=gr.Slider,
+        component_args={"minimum": 0, "maximum": 50, "step": 1}, section=section))
+
+    # Debug log（既定OFF）
+    shared.opts.add_option("cutoff_forge_debug_log", shared.OptionInfo(
+        default=False, label="Debug log (verbose internal logs; OFF by default)", section=section))
 
     return []
 
