@@ -45,13 +45,6 @@ class Script(scripts.Script):
                 "To refresh, **adjust the batch size** or **briefly switch checkpoints and switch back**."
             )
 
-            # --- NEW: Source expansion (±N) ---
-            with gr.Row():
-                src_n = gr.Slider(minimum=0, maximum=5, step=1,
-                                  value=_get_opt("cutoff_forge_source_expand_n", 1),
-                                  label="Source expansion (±N)")
-            src_n.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_source_expand_n", visible=False), src_n], outputs=[])
-
             # 4) Interpolation & Apply TE1/TE2（並べて表示）
             with gr.Row():
                 apply_te1 = gr.Checkbox(
@@ -67,6 +60,13 @@ class Script(scripts.Script):
                     choices=["Lerp", "Slerp"],
                     value=_get_opt("cutoff_forge_method", "Slerp"),
                 )
+
+            # --- NEW: Source expansion (±N) ---
+            with gr.Row():
+                src_n = gr.Slider(minimum=0, maximum=5, step=1,
+                                  value=_get_opt("cutoff_forge_source_expand_n", 1),
+                                  label="Source expansion (±N)")
+            src_n.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_source_expand_n", visible=False), src_n], outputs=[])
 
             # --- NEW: Distance decay ---
             with gr.Row():
