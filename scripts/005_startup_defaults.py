@@ -10,12 +10,14 @@ def _force_enable_off(_app=None, *_args, **_kwargs):
         opts.cutoff_forge_enable = False
 
         # --- NEW: 本拡張の追加オプション既定値を明示 ---
-        opts.cutoff_forge_source_expand_n = 1
-        opts.cutoff_forge_decay_mode = "off"
-        opts.cutoff_forge_decay_strength = 0.5
-        opts.cutoff_forge_exclude_tokens = ""
-        opts.cutoff_forge_processing_targets = ""
-        opts.cutoff_forge_teaware_mode = "off"
+        # ‐-- 020_forge_cutoff_settings.pyとの競合回避のためコメントアウト ---
+        # opts.cutoff_forge_source_expand_n = 1
+        # opts.cutoff_forge_decay_mode = "off"
+        # opts.cutoff_forge_decay_strength = 0.5
+        # opts.cutoff_forge_exclude_tokens = ""
+        # opts.cutoff_forge_processing_targets = ""
+        # opts.cutoff_forge_teaware_mode = "off"
+    
     except Exception:
         # 既定値の設定に失敗しても起動自体は継続
         pass
