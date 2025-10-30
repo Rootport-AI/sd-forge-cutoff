@@ -62,10 +62,6 @@ def on_ui_settings():
         default=50, label="Cutoff ratio % (tail rows; Sanity only)", component=gr.Slider,
         component_args={"minimum": 0, "maximum": 50, "step": 1}, section=section))
 
-    # Debug log（既定OFF）
-    shared.opts.add_option("cutoff_forge_debug_log", shared.OptionInfo(
-        default=False, label="Debug log (verbose internal logs; OFF by default)", section=section))
-
     return []
 
 try:

@@ -91,7 +91,7 @@ class Script(scripts.Script):
                                   label="TE-aware")
             teaware.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_teaware_mode", visible=False), teaware], outputs=[])
             
-            # 5) Sanity & Cutoff ratio & Debug log（並べて表示）
+            # 5) Sanity & Cutoff ratio
             with gr.Row():
                 sanity = gr.Checkbox(
                     label="Sanity test (for debug)",
@@ -105,16 +105,7 @@ class Script(scripts.Script):
                     value=_get_opt("cutoff_forge_cut_ratio", 50),
                     interactive=ratio_interactive,
                 )
-                debug_log = gr.Checkbox(
-                    label="Debug log",
-                    value=_get_opt("cutoff_forge_debug_log", False),
-                )
                 
-            # 6) 注釈（最下部）
-            gr.Markdown(
-                "<span style='font-size:12px; color:#888;'>When \"Debug log\" is enabled, internal logs are printed to console.</span>"
-            )
-
             # --- オプション即時反映 ---
             method.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_method", visible=False), method], outputs=[])
             strength.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_strength", visible=False), strength], outputs=[])

@@ -13,16 +13,13 @@ if not log.handlers:
     h = logging.StreamHandler()
     h.setFormatter(logging.Formatter("[ForgeCutoffPoC] %(levelname)s: %(message)s"))
     log.addHandler(h)
-log.setLevel(logging.WARNING)  # デフォルトは抑制（DebugチェックON時のみ _dbg で出す）
+log.setLevel(logging.INFO)  # 常時出力する方針に変更（WARNINGからINFOへ）
 
-# ---- Debug guard ----
+# ---- Always-on debug (now informational) ----
 def _dbg(msg, *args):
-    """Verbose log only when opts.cutoff_forge_debug_log == True"""
+    """Always print informational logs (no toggle)"""
     try:
-        from modules.shared import opts as _opts
-        if bool(getattr(_opts, "cutoff_forge_debug_log", False)):
-            # ログレベルは WARNING 固定。チェックON時のみ出力し、計算に影響を与えない
-            log.warning(msg, *args)
+        log.info(msg, *args)
     except Exception:
         pass
 
