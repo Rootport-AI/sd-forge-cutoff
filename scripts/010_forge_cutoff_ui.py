@@ -120,6 +120,5 @@ class Script(scripts.Script):
             sanity.change(_toggle_ratio_interactive, inputs=[sanity], outputs=[cut_ratio])
 
             cut_ratio.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_cut_ratio", visible=False), cut_ratio], outputs=[])
-            debug_log.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_debug_log", visible=False), debug_log], outputs=[])
 
         return []
