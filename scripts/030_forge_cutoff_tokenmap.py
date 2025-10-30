@@ -165,6 +165,20 @@ def _install():
     def _wrapped(self, texts):
         out = _orig(self, texts)
 
+        # --- Cutoff EnableがOFFなら完全に何もしない（ログも出さない） ---
+        try:
+            from modules.shared import opts as _opts
+            enabled = bool(getattr(_opts, "cutoff_forge_enable", False))
+        except Exception:
+            enabled = False
+        if not enabled:
+            try:
+                # 念のため揮発ストアを空に
+                vctx.clear()
+            except Exception:
+                pass
+            return out
+
         # どのエンコーダか（S から推定 → 後段で enc_tag をキーに整合）
         try:
             series = out[0] if (isinstance(out, tuple) and len(out) >= 1) else out  # Tensor [B,S,H]
