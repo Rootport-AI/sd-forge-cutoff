@@ -133,27 +133,32 @@ class Script(scripts.Script):
                         interactive=ratio_interactive,
                     )
                 
-            # --- セッション専用: Stateを更新し vctx へ反映 ---
-            def _merge(stv, **kw):
-                stv.update(kw); _push_runtime(stv); return stv
-            method.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"method": gr.update()})
-            strength.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"strength": gr.update()})
-            tokens.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"targets": gr.update()})
-            apply_te1.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"apply_te1": gr.update()})
-            apply_te2.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"apply_te2": gr.update()})
+            # --- セッション専用: Stateを更新し vctx へ反映（positional-only） ---
+            def _upd_state(key):
+                def _f(stv, val):
+                    stv[key] = val
+                    _push_runtime(stv)
+                    return stv
+                return _f
+
+            method.change(_upd_state("method"),           inputs=[st, method],   outputs=[st], show_progress=False)
+            strength.change(_upd_state("strength"),       inputs=[st, strength], outputs=[st], show_progress=False)
+            tokens.change(_upd_state("targets"),          inputs=[st, tokens],   outputs=[st], show_progress=False)
+            apply_te1.change(_upd_state("apply_te1"),     inputs=[st, apply_te1], outputs=[st], show_progress=False)
+            apply_te2.change(_upd_state("apply_te2"),     inputs=[st, apply_te2], outputs=[st], show_progress=False)
 
             # Sanityの変更は: 1) オプション更新 2) Ratioの操作可否を更新
             def _toggle_ratio_interactive(s):
                 return gr.update(interactive=bool(s))
-            sanity.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"sanity": gr.update()})
+            sanity.change(_upd_state("sanity"), inputs=[st, sanity], outputs=[st], show_progress=False)
             sanity.change(_toggle_ratio_interactive, inputs=[sanity], outputs=[cut_ratio])
 
-            cut_ratio.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"cut_ratio": gr.update()})
-            excl.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"exclude_tokens": gr.update()})
-            ponly.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"processing_targets": gr.update()})
-            src_n.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"source_expand_n": gr.update()})
-            decay_mode.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"decay_mode": gr.update()})
-            decay_strength.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"decay_strength": gr.update()})
-            teaware.change(_merge, inputs=[st], outputs=[st], show_progress=False, _js=None, kwargs={"teaware_mode": gr.update()})
+            cut_ratio.change(     _upd_state("cut_ratio"),        inputs=[st, cut_ratio],    outputs=[st], show_progress=False)
+            excl.change(          _upd_state("exclude_tokens"),   inputs=[st, excl],         outputs=[st], show_progress=False)
+            ponly.change(         _upd_state("processing_targets"), inputs=[st, ponly],      outputs=[st], show_progress=False)
+            src_n.change(         _upd_state("source_expand_n"),  inputs=[st, src_n],        outputs=[st], show_progress=False)
+            decay_mode.change(    _upd_state("decay_mode"),       inputs=[st, decay_mode],   outputs=[st], show_progress=False)
+            decay_strength.change(_upd_state("decay_strength"),   inputs=[st, decay_strength], outputs=[st], show_progress=False)
+            teaware.change(       _upd_state("teaware_mode"),     inputs=[st, teaware],      outputs=[st], show_progress=False)
 
         return []
