@@ -113,6 +113,43 @@ class Script(scripts.Script):
                         choices=["Lerp", "Slerp"],
                         value=_runtime_defaults()["method"],
                     )
+                
+                gr.Markdown("<hr style='border:none; border-top:1px solid transparent; margin:8px 0;'>")
+                with gr.Accordion("❓ Help", open=False):
+                    gr.Markdown( 
+                        """ <div style="font-size: 0.95em; opacity: .95">
+                        
+                        > #### ℹ️ Cutoff — Advanced Help
+                        > **What this does:** Cutoff “neutralizes” parts of the prompt **other than the specified Target tokens** to reduce color bleed and concept mixing. The options below control **what to protect** and **what to neutralize**.
+
+                        **Source expansion (±N)**  
+                        Protects tokens **near the target** (within ±N tokens **in the same phrase**).  
+                        Example: When the target token is `blue`: with `blue hair` and N=0, `hair` is also neutralized, so the hair color becomes pale. Setting N=1 protects up to `hair`. With `blue long hair` and N=2, the tokens around `blue` (i.e., `long hair`) are also kept intact.
+
+                        **Exclude from processing (CSV)**  
+                        Items listed here are **never neutralized** (always protected).  
+                        Example: adding `background, outdoors, skin` keeps background and skin out of the neutralization set.
+
+                        **Processing targets (CSV)**  
+                        Neutralizes **only** the parts **listed here** (filters the scope). Leave empty to target the whole prompt.  
+                        You **must** enter tokens that are actually affected by the Target tokens. If the listed items aren’t under the Target’s influence, no neutralization will be found and the output will look similar to **Enable=off**.
+
+                        **Apply to TE1 / TE2**  
+                        Choose which text encoder to apply to.  
+                        - **TE1** — layout / composition–oriented (turning this ON can further suppress pose/layout shifts).  
+                        - **TE2** — detail / color–oriented (the main battleground for color bleed; usually recommended ON).
+
+                        **Interpolation (Lerp / Slerp)**  
+                        How the neutralization is mixed.  
+                        - **Slerp** — more robust for stronger effects (recommended).  
+                        - **Lerp** — lighter and linear; use when you want a milder effect.
+
+                        > **Tips**
+                        > - If the effect feels weak, try **Strength 0.6–0.7** or list **multiple Processing targets**.  
+                        > - If nothing changes, check **compatibility between the Target color and the part** (e.g., if the umbrella has no `pink`, it won’t help).  
+                        > - Reminder: with the same prompt, changing **Target tokens only** **will not** trigger re-computation. Refresh by tweaking **Batch size ±1**, or **temporarily switch checkpoints and switch back**.
+                        </div>"""
+                    )        
 
                 gr.Markdown("<hr style='margin:8px 0; border:none; border-top:1px solid rgba(255,255,255,0.15);'>")
                 gr.Markdown("**For debug**")
