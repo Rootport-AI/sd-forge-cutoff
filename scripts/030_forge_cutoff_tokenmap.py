@@ -27,6 +27,12 @@ try:
 except Exception:
     from forge_cutoff import context_volatile as vctx
 
+def _rt(key, default=None):
+    try:
+        return vctx.get_runtime(key, default)
+    except Exception:
+        return default
+
 def _norm_words_csv(s: str) -> List[str]:
     import re
     return [w.strip() for w in re.split(r"[,，\s]+", s or "") if w.strip()]
@@ -187,15 +193,11 @@ def _install():
         except Exception:
             enc_tag = "TE1"
 
-        # UI の targets / Exclude / Processing targets / Source拡張
-        try:
-            from modules.shared import opts
-            targets_raw = str(getattr(opts, "cutoff_forge_targets", "") or "")
-            excl_raw    = str(getattr(opts, "cutoff_forge_exclude_tokens", "") or "")
-            ponly_raw   = str(getattr(opts, "cutoff_forge_processing_targets", "") or "")
-            expand_n = int(getattr(opts, "cutoff_forge_source_expand_n", 1) or 1)
-        except Exception:
-            targets_raw, excl_raw, ponly_raw, expand_n = "", "", "", 0
+        # ランタイム設定（セッション限定）
+        targets_raw = str(_rt("targets", "") or "")
+        excl_raw    = str(_rt("exclude_tokens", "") or "")
+        ponly_raw   = str(_rt("processing_targets", "") or "")
+        expand_n    = int(_rt("source_expand_n", 1) or 1)
 
         canon = _canon_targets(targets_raw)
         words_targets = _norm_words_csv(canon)

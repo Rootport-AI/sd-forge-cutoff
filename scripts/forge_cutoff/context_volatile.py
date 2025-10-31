@@ -18,6 +18,23 @@ _state: Dict[str, object] = {
 
     # 直近の enc_tag を控える（安全のため）
     "last_enc_tag": "",
+
+    # 追加: ランタイム設定（セッション限定；永続化しない）
+    "runtime_cfg": {
+        "method": "Slerp",
+        "strength": 0.5,
+        "targets": "",
+        "apply_te1": False,
+        "apply_te2": True,
+        "exclude_tokens": "",
+        "processing_targets": "",
+        "source_expand_n": 1,
+        "decay_mode": "off",
+        "decay_strength": 0.5,
+        "teaware_mode": "off",
+        "sanity": False,
+        "cut_ratio": 50,
+    },
 }
 
 def set_rows(enc_tag: str, rows: List[int], targets_canon: str):
@@ -58,3 +75,20 @@ def clear():
     _state["targets_canon"] = ""
     _state["dummy_text_by_enc"] = {"TE1": "", "TE2": ""}
     _state["last_enc_tag"] = ""
+
+    # ランタイム設定はクリアしない（セッション継続中）。必要なら別APIで。
+
+# ---- runtime config (session-only) ----
+def set_runtime(d: Dict[str, object]):
+    """部分更新: セッション限定設定を上書き（保存しない）。"""
+    rc = _state.get("runtime_cfg", {})
+    if not isinstance(rc, dict):
+        rc = {}
+    rc.update({k: v for k, v in (d or {}).items()})
+    _state["runtime_cfg"] = rc
+
+def get_runtime(key: str, default=None):
+    rc = _state.get("runtime_cfg", {})
+    if not isinstance(rc, dict):
+        return default
+    return rc.get(key, default)

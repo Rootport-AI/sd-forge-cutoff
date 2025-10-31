@@ -2,6 +2,10 @@
 from typing import List, Tuple, Set
 
 from modules.shared import opts
+try:
+    from scripts.forge_cutoff import context_volatile as vctx
+except Exception:
+    from forge_cutoff import context_volatile as vctx
 
 try:
     from scripts.forge_cutoff import context_volatile as vctx
@@ -37,17 +41,13 @@ def _enc_tag_from_S(S: int) -> str:
     return "TE1" if S <= 77 else "TE2"
 
 def _apply_for_enc(enc: str) -> bool:
-    try:
-        return bool(getattr(opts, "cutoff_forge_apply_te1", False)) if enc == "TE1" \
-            else bool(getattr(opts, "cutoff_forge_apply_te2", True))
-    except Exception:
-        return True
+    # セッション限定の apply_te1/apply_te2 を参照
+    if enc == "TE1":
+        return bool(vctx.get_runtime("apply_te1", False))
+    return bool(vctx.get_runtime("apply_te2", True))
 
 def _select_rows_sanity(S: int) -> List[int]:
-    try:
-        ratio = int(getattr(opts, "cutoff_forge_cut_ratio", 50))
-    except Exception:
-        ratio = 50
+    ratio = int(vctx.get_runtime("cut_ratio", 50) or 50)
     ratio = max(0, min(50, ratio))
     k = int(S * ratio / 100.0)
     return list(range(max(0, S - k), S)) if k > 0 else []
@@ -188,12 +188,9 @@ def try_install():
                 _dbg("[cutoff:pc] cond is not 3D tensor; skip")
                 return ret
 
-            try:
-                method = str(getattr(opts, "cutoff_forge_method", "Slerp"))
-                alpha  = float(getattr(opts, "cutoff_forge_strength", 0.6))
-                sanity = bool(getattr(opts, "cutoff_forge_sanity", False))
-            except Exception:
-                method, alpha, sanity = "Lerp", 0.6, False
+            method = str(vctx.get_runtime("method", "Slerp") or "Slerp")
+            alpha  = float(vctx.get_runtime("strength", 0.6) or 0.6)
+            sanity = bool(vctx.get_runtime("sanity", False))
 
             S = int(series.shape[1])
             H = int(series.shape[2])
@@ -202,16 +199,13 @@ def try_install():
                 return ret
 
             # UIとvctxのtargets一致確認
-            try:
-                current_targets = str(getattr(opts, "cutoff_forge_targets", "") or "").lower().replace("，", ",")
-                current_canon = ",".join([w.strip() for w in current_targets.split(",") if w.strip()])
-                vctx_canon = vctx.get_targets_canon() or ""
-                if vctx_canon != current_canon:
-                    _dbg("[cutoff:pc] targets mismatch (vctx=%s, opts=%s); skip once",
-                         (vctx_canon or "<empty>"), (current_canon or "<empty>"))
-                    return ret
-            except Exception:
-                pass
+            current_targets = str(vctx.get_runtime("targets", "") or "").lower().replace("，", ",")
+            current_canon = ",".join([w.strip() for w in current_targets.split(",") if w.strip()])
+            vctx_canon = vctx.get_targets_canon() or ""
+            if vctx_canon != current_canon:
+                _dbg("[cutoff:pc] targets mismatch (vctx=%s, ui=%s); skip once",
+                     (vctx_canon or "<empty>"), (current_canon or "<empty>"))
+                return ret
 
             # Victim（初期）
             rows_victim_enc = _select_rows_sanity(S) if sanity else vctx.get_rows_victim(enc)
@@ -225,23 +219,14 @@ def try_install():
                 return ret
 
             # TE-aware mode
-            try:
-                teaware = str(getattr(opts, "cutoff_forge_teaware_mode", "off") or "off")
-            except Exception:
-                teaware = "off"
+            teaware = str(vctx.get_runtime("teaware_mode", "off") or "off")
 
             # Distance decay 設定
-            try:
-                decay_mode = str(getattr(opts, "cutoff_forge_decay_mode", "off") or "off")
-                decay_strength = float(getattr(opts, "cutoff_forge_decay_strength", 0.5) or 0.5)
-            except Exception:
-                decay_mode, decay_strength = "off", 0.5
+            decay_mode = str(vctx.get_runtime("decay_mode", "off") or "off")
+            decay_strength = float(vctx.get_runtime("decay_strength", 0.5) or 0.5)
 
             # Source行（距離計算に使用）— vctx が未実装ならフォールバック
-            try:
-                rows_source_enc = set(vctx.get_rows(enc) or [])
-            except Exception:
-                rows_source_enc = set()
+            rows_source_enc = set(vctx.get_rows(enc) or [])
 
             # TE-aware Safe(AND) の場合、両TEの Victim 交差を採用
             if teaware == "safe_and":
