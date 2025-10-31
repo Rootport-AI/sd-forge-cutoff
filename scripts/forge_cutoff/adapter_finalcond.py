@@ -218,8 +218,8 @@ def try_install():
                 _dbg("[cutoff:pc] re-entrancy detected; skip")
                 return ret
 
-            # TE-aware mode
-            teaware = str(vctx.get_runtime("teaware_mode", "off") or "off")
+#            # TE-aware mode
+#            teaware = str(vctx.get_runtime("teaware_mode", "off") or "off")
 
 #            # Distance decay 設定
 #            decay_mode = str(vctx.get_runtime("decay_mode", "off") or "off")
@@ -229,17 +229,20 @@ def try_install():
             # Source行（距離計算に使用）— vctx が未実装ならフォールバック
             rows_source_enc = set(vctx.get_rows(enc) or [])
 
-            # TE-aware Safe(AND) の場合、両TEの Victim 交差を採用
-            if teaware == "safe_and":
-                try:
-                    v1 = set(vctx.get_rows_victim("TE1") or [])
-                    v2 = set(vctx.get_rows_victim("TE2") or [])
-                    rows_victim = sorted(v1.intersection(v2))
-                except Exception:
-                    rows_victim = rows_victim_enc  # 取得失敗時はそのまま
-            else:
-                # 現状どおり：この enc に対して適用
-                rows_victim = rows_victim_enc
+#            # TE-aware Safe(AND) の場合、両TEの Victim 交差を採用
+#            if teaware == "safe_and":
+#                try:
+#                    v1 = set(vctx.get_rows_victim("TE1") or [])
+#                    v2 = set(vctx.get_rows_victim("TE2") or [])
+#                    rows_victim = sorted(v1.intersection(v2))
+#                except Exception:
+#                    rows_victim = rows_victim_enc  # 取得失敗時はそのまま
+#            else:
+#                # 現状どおり：この enc に対して適用
+#                rows_victim = rows_victim_enc
+
+            # --- TE-aware disabled: 常にこの enc の Victim を適用（off 相当） ---
+            rows_victim = rows_victim_enc
 
             if not rows_victim:
                 _dbg("[cutoff:pc] victim_rows empty after TE-aware filtering; skip")

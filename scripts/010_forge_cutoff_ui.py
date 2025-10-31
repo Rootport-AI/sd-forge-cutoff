@@ -66,7 +66,13 @@ class Script(scripts.Script):
 
             # --- Advanced options (4〜9) をアコーディオンに格納 ---
             with gr.Accordion("Advanced", open=False):
-                # 4) Exclude/Specify ---
+                # 4) Source expansion (±N) ---
+                with gr.Row():
+                    src_n = gr.Slider(minimum=0, maximum=5, step=1,
+                                      value=_runtime_defaults()["source_expand_n"],
+                                      label="Source expansion (±N)")
+
+                # 5) Exclude/Specify ---
                 excl = gr.Textbox(
                     value=_runtime_defaults()["exclude_tokens"], 
                     placeholder="indoors, background, etc...",
@@ -78,14 +84,6 @@ class Script(scripts.Script):
                     lines=1, label="Processing targets (CSV)"
                     )
 
-                gr.Markdown("<hr style='border:none; border-top:1px solid transparent; margin:8px 0;'>")
-
-                # 5) Source expansion (±N) ---
-                with gr.Row():
-                    src_n = gr.Slider(minimum=0, maximum=5, step=1,
-                                      value=_runtime_defaults()["source_expand_n"],
-                                      label="Source expansion (±N)")
-
 #                # 6) Distance decay ---
 #                with gr.Row():
 #                    decay_mode = gr.Dropdown(choices=["off", "linear", "cosine"],
@@ -95,10 +93,10 @@ class Script(scripts.Script):
 #                                               value=_runtime_defaults()["decay_strength"],
 #                                               label="Decay strength")
 
-                # 7) TE-aware ---
-                teaware = gr.Dropdown(choices=["off", "safe_and"],
-                                      value=_runtime_defaults()["teaware_mode"],
-                                      label="TE-aware")
+#                # 7) TE-aware ---
+#                teaware = gr.Dropdown(choices=["off", "safe_and"],
+#                                      value=_runtime_defaults()["teaware_mode"],
+#                                      label="TE-aware")
 
                 # 8) Interpolation & Apply TE1/TE2（並べて表示）
                 with gr.Row():
@@ -159,7 +157,7 @@ class Script(scripts.Script):
             src_n.change(         _upd_state("source_expand_n"),  inputs=[st, src_n],        outputs=[st], show_progress=False)
 #            decay_mode.change(    _upd_state("decay_mode"),       inputs=[st, decay_mode],   outputs=[st], show_progress=False)
 #            decay_strength.change(_upd_state("decay_strength"),   inputs=[st, decay_strength], outputs=[st], show_progress=False)
-            teaware.change(       _upd_state("teaware_mode"),     inputs=[st, teaware],      outputs=[st], show_progress=False)
+#            teaware.change(       _upd_state("teaware_mode"),     inputs=[st, teaware],      outputs=[st], show_progress=False)
 
             # ----------------------------------------------
             # 起動直後ワンショット：UI→runtime 同期（副作用：vctx.runtime_cfg を一度だけ確定）
@@ -178,7 +176,7 @@ class Script(scripts.Script):
                         source_expand_n   = int(src_n.value),
 #                        decay_mode        = decay_mode.value,
 #                        decay_strength    = float(decay_strength.value),
-                        teaware_mode      = teaware.value,
+#                        teaware_mode      = teaware.value,
                         sanity            = bool(sanity.value),
                         cut_ratio         = int(cut_ratio.value),
                     )
