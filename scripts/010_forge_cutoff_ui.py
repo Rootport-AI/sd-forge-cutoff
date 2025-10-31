@@ -13,7 +13,7 @@ def _runtime_defaults():
         method="Slerp",
         strength=0.5,
         targets="",
-        apply_te1=False,
+        apply_te1=True,
         apply_te2=True,
         exclude_tokens="",
         processing_targets="",

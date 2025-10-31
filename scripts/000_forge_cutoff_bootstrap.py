@@ -119,3 +119,19 @@ if _detect_forge():
         log.exception("bootstrap install failed: %s", e)
 else:
     log.info("Forge backend not detected; bootstrap did nothing.")
+
+# --- NEW: 起動毎に一度だけ Enable をOFFへ（UIリロードでは実行しない） ---
+try:
+    from modules import script_callbacks, shared
+    _cutoff_registered = globals().get("_cutoff_registered", False)
+    if not _cutoff_registered:
+        def _force_enable_off_once(_app=None, *_a, **_k):
+            try:
+                shared.opts.cutoff_forge_enable = False
+                log.info("force cutoff_forge_enable = False at app start")
+            except Exception:
+                pass
+        script_callbacks.on_app_started(_force_enable_off_once)
+        globals()["_cutoff_registered"] = True
+except Exception:
+    pass
