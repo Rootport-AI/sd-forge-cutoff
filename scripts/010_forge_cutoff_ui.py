@@ -18,9 +18,9 @@ def _runtime_defaults():
         exclude_tokens="",
         processing_targets="",
         source_expand_n=1,
-        decay_mode="off",
-        decay_strength=0.5,
-        teaware_mode="off",
+#        decay_mode="off",
+#        decay_strength=0.5,
+#        teaware_mode="off",
         sanity=False,
         cut_ratio=50,
     )
