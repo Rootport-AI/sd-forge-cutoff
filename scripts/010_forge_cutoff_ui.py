@@ -85,7 +85,6 @@ class Script(scripts.Script):
                     src_n = gr.Slider(minimum=0, maximum=5, step=1,
                                       value=_runtime_defaults()["source_expand_n"],
                                       label="Source expansion (±N)")
-                src_n.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_source_expand_n", visible=False), src_n], outputs=[])
 
                 # 6) Distance decay ---
                 with gr.Row():
@@ -100,7 +99,6 @@ class Script(scripts.Script):
                 teaware = gr.Dropdown(choices=["off", "safe_and"],
                                       value=_runtime_defaults()["teaware_mode"],
                                       label="TE-aware")
-                teaware.change(_set_opt, inputs=[gr.Textbox(value="cutoff_forge_teaware_mode", visible=False), teaware], outputs=[])
 
                 # 8) Interpolation & Apply TE1/TE2（並べて表示）
                 with gr.Row():
@@ -127,7 +125,7 @@ class Script(scripts.Script):
                         value=_runtime_defaults()["sanity"],
                     )
                     # SanityがOFFのときは ratio を操作不可に
-                    ratio_interactive = bool(_get_opt("cutoff_forge_sanity", False))
+                    ratio_interactive = bool(_runtime_defaults()["sanity"])
                     cut_ratio = gr.Slider(
                         label="Test ratio %",
                         minimum=0, maximum=50, step=1,
