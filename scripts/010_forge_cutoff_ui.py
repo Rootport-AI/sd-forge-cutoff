@@ -161,4 +161,31 @@ class Script(scripts.Script):
             decay_strength.change(_upd_state("decay_strength"),   inputs=[st, decay_strength], outputs=[st], show_progress=False)
             teaware.change(       _upd_state("teaware_mode"),     inputs=[st, teaware],      outputs=[st], show_progress=False)
 
+            # ----------------------------------------------
+            # 起動直後ワンショット：UI→runtime 同期（副作用：vctx.runtime_cfg を一度だけ確定）
+            # ここで取得する .value は、ui-config.json に保存されている既定があれば
+            # それが反映された“現在の表示値”です。
+            def _init_sync():
+                try:
+                    cfg = dict(
+                        method            = method.value,
+                        strength          = strength.value,
+                        targets           = tokens.value,
+                        apply_te1         = bool(apply_te1.value),
+                        apply_te2         = bool(apply_te2.value),
+                        exclude_tokens    = excl.value,
+                        processing_targets= ponly.value,
+                        source_expand_n   = int(src_n.value),
+                        decay_mode        = decay_mode.value,
+                        decay_strength    = float(decay_strength.value),
+                        teaware_mode      = teaware.value,
+                        sanity            = bool(sanity.value),
+                        cut_ratio         = int(cut_ratio.value),
+                    )
+                    _push_runtime(cfg)
+                except Exception:
+                    # 同期に失敗しても起動は継続（以後の .change で逐次反映される）
+                    pass
+            _init_sync()
+
         return []
