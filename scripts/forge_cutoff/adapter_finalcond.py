@@ -221,9 +221,10 @@ def try_install():
             # TE-aware mode
             teaware = str(vctx.get_runtime("teaware_mode", "off") or "off")
 
-            # Distance decay 設定
-            decay_mode = str(vctx.get_runtime("decay_mode", "off") or "off")
-            decay_strength = float(vctx.get_runtime("decay_strength", 0.5) or 0.5)
+#            # Distance decay 設定
+#            decay_mode = str(vctx.get_runtime("decay_mode", "off") or "off")
+#            decay_strength = float(vctx.get_runtime("decay_strength", 0.5) or 0.5)
+            decay_mode, decay_strength = "off", 0.5 #常にOFF
 
             # Source行（距離計算に使用）— vctx が未実装ならフォールバック
             rows_source_enc = set(vctx.get_rows(enc) or [])
@@ -273,29 +274,32 @@ def try_install():
                 else:
                     pad_sel_all = None  # 平均は _apply_rows_inplace 内で一度だけ計算
 
-                # 行ごとの α_i を準備（距離減衰 Off の場合は単一αにする）
+#                # 行ごとの α_i を準備（距離減衰 Off の場合は単一αにする）
+#                use_vector_alpha = False
+#                if decay_mode == "off" or (not rows_source_enc):
+#                    # 以前どおり：単一αで一括適用（ブロードキャスト不要）
+#                    alpha_arg = float(alpha)
+#                else:
+#                    use_vector_alpha = True
+#                    # Dmax を簡便に：Source 行の最小～最大の広がり
+#                    Smin = min(rows_source_enc) if rows_source_enc else 0
+#                    Smax = max(rows_source_enc) if rows_source_enc else (S - 1)
+#                    Dmax = max(1, (Smax - Smin) or 1)
+#                    alphas_rows: List[float] = []
+#                    for i in rows_victim:
+#                        d = min((abs(i - j) for j in rows_source_enc)) if rows_source_enc else Dmax
+#                        t = max(0.0, min(1.0, d / Dmax))
+#                        if decay_mode == "linear":
+#                            scale = (1.0 - t)
+#                        else:
+#                            # cosine
+#                            scale = 0.5 * (1.0 + math.cos(math.pi * t))
+#                        a_i = float(alpha) * float(decay_strength) * float(scale)
+#                        a_i = max(0.15, min(1.0, a_i))
+#                        alphas_rows.append(a_i)
+                # 行ごとの α は常に単一値（Distance decay 無効）
                 use_vector_alpha = False
-                if decay_mode == "off" or (not rows_source_enc):
-                    # 以前どおり：単一αで一括適用（ブロードキャスト不要）
-                    alpha_arg = float(alpha)
-                else:
-                    use_vector_alpha = True
-                    # Dmax を簡便に：Source 行の最小～最大の広がり
-                    Smin = min(rows_source_enc) if rows_source_enc else 0
-                    Smax = max(rows_source_enc) if rows_source_enc else (S - 1)
-                    Dmax = max(1, (Smax - Smin) or 1)
-                    alphas_rows: List[float] = []
-                    for i in rows_victim:
-                        d = min((abs(i - j) for j in rows_source_enc)) if rows_source_enc else Dmax
-                        t = max(0.0, min(1.0, d / Dmax))
-                        if decay_mode == "linear":
-                            scale = (1.0 - t)
-                        else:
-                            # cosine
-                            scale = 0.5 * (1.0 + math.cos(math.pi * t))
-                        a_i = float(alpha) * float(decay_strength) * float(scale)
-                        a_i = max(0.15, min(1.0, a_i))
-                        alphas_rows.append(a_i)
+                alpha_arg = float(alpha)
 
                 # ---- まとめて一発適用（順序非依存）----
                 if use_vector_alpha:
@@ -304,7 +308,7 @@ def try_install():
                     _apply_rows_inplace(series, rows=rows_victim, method=method, alpha=alpha_arg, pad_sel=pad_sel_all)
 
                 _dbg("[cutoff:pc] enc=%s S=%d victim_rows=%d method=%s alpha_base=%.2f decay=%s targets=%s",
-                     enc, S, len(rows_victim), method, float(alpha), decay_mode, vctx.get_targets_canon() or "<empty>")
+                     enc, S, len(rows_victim), method, float(alpha), "off", vctx.get_targets_canon() or "<empty>")
             finally:
                 _leave()
                 try:

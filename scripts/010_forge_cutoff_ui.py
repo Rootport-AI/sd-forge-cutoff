@@ -86,14 +86,14 @@ class Script(scripts.Script):
                                       value=_runtime_defaults()["source_expand_n"],
                                       label="Source expansion (±N)")
 
-                # 6) Distance decay ---
-                with gr.Row():
-                    decay_mode = gr.Dropdown(choices=["off", "linear", "cosine"],
-                                             value=_runtime_defaults()["decay_mode"],
-                                             label="Distance decay")
-                    decay_strength = gr.Slider(minimum=0.0, maximum=1.0, step=0.05,
-                                               value=_runtime_defaults()["decay_strength"],
-                                               label="Decay strength")
+#                # 6) Distance decay ---
+#                with gr.Row():
+#                    decay_mode = gr.Dropdown(choices=["off", "linear", "cosine"],
+#                                             value=_runtime_defaults()["decay_mode"],
+#                                             label="Distance decay")
+#                    decay_strength = gr.Slider(minimum=0.0, maximum=1.0, step=0.05,
+#                                               value=_runtime_defaults()["decay_strength"],
+#                                               label="Decay strength")
 
                 # 7) TE-aware ---
                 teaware = gr.Dropdown(choices=["off", "safe_and"],
@@ -157,8 +157,8 @@ class Script(scripts.Script):
             excl.change(          _upd_state("exclude_tokens"),   inputs=[st, excl],         outputs=[st], show_progress=False)
             ponly.change(         _upd_state("processing_targets"), inputs=[st, ponly],      outputs=[st], show_progress=False)
             src_n.change(         _upd_state("source_expand_n"),  inputs=[st, src_n],        outputs=[st], show_progress=False)
-            decay_mode.change(    _upd_state("decay_mode"),       inputs=[st, decay_mode],   outputs=[st], show_progress=False)
-            decay_strength.change(_upd_state("decay_strength"),   inputs=[st, decay_strength], outputs=[st], show_progress=False)
+#            decay_mode.change(    _upd_state("decay_mode"),       inputs=[st, decay_mode],   outputs=[st], show_progress=False)
+#            decay_strength.change(_upd_state("decay_strength"),   inputs=[st, decay_strength], outputs=[st], show_progress=False)
             teaware.change(       _upd_state("teaware_mode"),     inputs=[st, teaware],      outputs=[st], show_progress=False)
 
             # ----------------------------------------------
@@ -176,8 +176,8 @@ class Script(scripts.Script):
                         exclude_tokens    = excl.value,
                         processing_targets= ponly.value,
                         source_expand_n   = int(src_n.value),
-                        decay_mode        = decay_mode.value,
-                        decay_strength    = float(decay_strength.value),
+#                        decay_mode        = decay_mode.value,
+#                        decay_strength    = float(decay_strength.value),
                         teaware_mode      = teaware.value,
                         sanity            = bool(sanity.value),
                         cut_ratio         = int(cut_ratio.value),
