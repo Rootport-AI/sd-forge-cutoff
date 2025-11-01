@@ -348,3 +348,10 @@ Forgeのアーキテクチャ（`hijack` APIの廃止）に対応するため、
 > This work is strongly inspired by the great concept and algorithm of [sd-webui-cutoff by hnmr293](https://github.com/hnmr293/sd-webui-cutoff).
 > To adapt to Forge’s architecture (no `hijack` API), we re-implemented the feature with a different approach (patching **CTPE** and **ConditionCrossAttn**) instead of the original U-Net hook.
 > Many thanks and respect to hnmr293 for the pioneering work.
+
+---
+## Author/License
+- Rootport  
+  https://github.com/Rootport-AI
+  https://x.com/rootport
+This project is licensed under the [MIT License](./LICENSE).
