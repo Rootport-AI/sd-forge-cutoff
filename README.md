@@ -8,22 +8,28 @@ SD WebUI Forge専用の**トークンの影響範囲を操作することでカ�
 
 ---
 ## 使い方／Usage
-1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。**Enable"(sd-forge-cutoff)"**が、画面上部に表示されるので、チェックを入れてください。
-   In Settings → User interface → **Quicksettings list**, add cutoff_forge_enable. Then a **Enable (sd-forge-cutoff)** checkbox appears in the top bar—turn it ON.  
-2. Target tokensに、色移りを抑制したい単語を入力します。たとえば「`1girl, blue hair, white shirt, indoors`」というプロンプトで、髪の青さがシャツに色移りしているケースなら、「`blue,`」と記入します。  
-   In **Target tokens**, enter the word(s) whose color bleed you want to suppress. For example, with the prompt `1girl, blue hair, white shirt, indoors`, if the hair’s blue bleeds into the shirt, set `blue,`. 
-3. 画像を生成してください。
-   Generate an image. 　
-4. 前回の生成と同じプロンプトでTarget tokensだけを追加・変更すると、Cutoffが機能しなくなります。バッチサイズを変えて生成するか、checkpointモデルを一旦別のものに変えて元に戻すという手動操作をしてください。（理由は後述）
-   If you only add/modify **Target tokens** while leaving the prompt and settings otherwise unchanged, **Cutoff won’t run**. Change the batch size or temporarily switch the checkpoint and switch back (details below).
-**NOTE：** プロンプトには`_`（アンダーバー）を含めないことを推奨。含まれていると、Cutoffの性能が不安定になります。
-   Avoid using the underscore `_` in prompts. It can make Cutoff unstable.
-**Strength α：** cutoffの効きの強さを調整します。高くするほどカラーブリードの抑制力が上がりますが、絵柄崩れのリスクが増します。低くすると絵柄崩れのリスクは減りますが、カラーブリードの抑止力も下がります。
-   Controls how strongly Cutoff acts. Higher values suppress color bleed more but increase the risk of artifacts; lower values reduce artifacts but may not suppress bleed enough.
+1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。**Enable"(sd-forge-cutoff)"**が画面上部に表示されるので、チェックを入れてください。
 
+2. Target tokensに、色移りを抑制したい単語を入力します。たとえば「`1girl, blue hair, white shirt, indoors`」というプロンプトで、髪の青さがシャツに色移りしているケースなら、「`blue,`」と記入します。  
+
+3. 画像を生成してください。
+
+4. 前回の生成と同じプロンプトでTarget tokensだけを追加・変更すると、Cutoffが機能しなくなります。バッチサイズを変えて生成するか、checkpointモデルを一旦別のものに変えて元に戻すという手動操作をしてください。（理由は後述）
+
+**注意：** プロンプトには`_`（アンダーバー）を含めないことを推奨。含まれていると、Cutoffの性能が不安定になります。
+**Strength α：** cutoffの効きの強さを調整します。高くするほどカラーブリードの抑制力が上がりますが、絵柄崩れのリスクが増します。低くすると絵柄崩れのリスクは減りますが、カラーブリードの抑止力も下がります。
+   
+> 1. In Settings → User interface → **Quicksettings list**, add cutoff_forge_enable. Then a **Enable (sd-forge-cutoff)** checkbox appears in the top bar—turn it ON. 
+> 2. In **Target tokens**, enter the word(s) whose color bleed you want to suppress. For example, with the prompt `1girl, blue hair, white shirt, indoors`, if the hair’s blue bleeds into the shirt, set `blue,`. 
+> 3. Generate an image. 
+> 4. If you only add/modify **Target tokens** while leaving the prompt and settings otherwise unchanged, **Cutoff won’t run**. Change the batch size or temporarily switch the checkpoint and switch back (details below).
+> **NOTE:** Avoid using the underscore `_` in prompts. It can make Cutoff unstable.
+> **Strength α：** Controls how strongly Cutoff acts. Higher values suppress color bleed more but increase the risk of artifacts; lower values reduce artifacts but may not suppress bleed enough.
 ---
 
-```テストプロンプトA／Test prompt A
+
+テストプロンプトA／Test prompt A
+```
 masterpiece, best quality, absurdres, highres, newest,
 BREAK
 full body, 1girl, standing, blue hair, yellow eyes, blush smile, animal ears, cat ears, long braid, white shirt, sleeveless, [[ medium breasts, ]] purple elbow gloves, green bowtie, frilled skirt, black skirt, polka dot thighhighs, pale pink thighhighs, red pumps, indoors, white background,
@@ -46,7 +52,9 @@ Hires upscale: 1.5,
 Hires upscaler: R-ESRGAN 4x+ Anime6B, 
 ```
 
-```テストプロンプトB／Test prompt B
+
+テストプロンプトB／Test prompt B
+```
 masterpiece, best quality, absurdres, highres, newest,
 BREAK
 1girl, grey hair, yellow eyes, dark skin, smile, open mouth, standing, holding umbrella, blue umbrella, pale pink silk blouse, see-through raincoat, purple neon light, green scarf, glossy lips, black leather shorts, red rubber boots, reflective ground, cinematic lighting, rain, night, outdoors, street,
@@ -73,12 +81,14 @@ Hires upscaler: R-ESRGAN 4x+ Anime6B,
 # 仕組み／How it works
 ## なぜカラーブリードは生じるのか／Why color bleed happens  
 ここでは、たとえば`1girl, blue hair, white shirt, indoors`でシャツまで青くなってしまうケースで考察します。プロンプトでは`white shirt,`と指定しているのに、なぜ髪の色がシャツに混色してしまうのでしょうか？ 　
+
   Take `1girl, blue hair, white shirt, indoors` as an example where the shirt turns bluish even though we specified `white shirt`. Why does the hair color spill onto the shirt?
 
 ### (a) プロンプト → 最終コンディショニング行列／Prompt → final conditioning matrix 
 文字情報で書かれたプロンプトは、そのままでは**U-net（Stable Diffusionの心臓部）**では読み込めません。プロンプトのテキストをまずトークン化し、さらにU-netが読み込み可能な**テンソル（数値データのセット）**に変換する必要があります。
 SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系統）**を通って、最終的に **S×H** の**行列 C**（S=トークン列長、H=隠れ次元）になります。この C が U-Net のクロスアテンションの **“文脈（context）”**として、全層・全ステップで参照されます。
 *（※文系ユーザー向けのメモ：テンソルとは、噛み砕いていえば「ひとまとまりの数値データのセットを並べたもの」のことです。一次元のテンソルをベクトル、二次元のテンソルを行列と呼びます。）* 　
+
   A text prompt can’t be fed to the **U-Net** directly. It is **tokenized** then converted into numeric tensors that U-Net can read.
   In SDXL, tokens pass through **two text encoders (TE1/TE2)** and form a final matrix **C** of shape **S×H** (S = sequence length, H = hidden size). This C is referenced as context by the U-Net’s cross-attention at every layer and step.
   *(Note for non-engineers: a tensor is a “multi-axis table of numbers.” 1-D = vector, 2-D = matrix.)*
@@ -88,6 +98,7 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 - **共起バイアス：** 学習データに「青い髪」と「青い服」が同時に描かれた画像が多かった（偏りがあった）場合 → `blue` が衣服トークン（`shirt`）にも**弱く結びつきます**。
 - **アテンションの拡散：** クロスアテンションは各トークンの相互の影響を完全に分離することはできないため、`blue` の影響が「髪」以外のトークン行（`shirt`, `indoors` など）にも混入することがあります。
 - **位置依存の弱さ：** 文法上の近接（blue の直後に hair）は手がかりになりますが、完全ではありません。クロスアテンションの仕組み上、単語の位置を完全に分離することはできません。 　
+  
   `blue` is a **color concept vector**—it does not, by itself, know whether it should apply to hair or shirt. Cross-attention probabilistically decides **where** to attribute `blue`. Having `hair` nearby helps localize, but bleed still occurs because:
   - **Co-occurrence bias:** If training images often depict **blue hair and blue clothes together**, `blue` can **weakly associate** with shirt as well.
   - **Attention spill:** Cross-attention can’t perfectly isolate token effects; `blue` can leak into token rows like `shirt` or `indoors`.
@@ -99,7 +110,8 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 ---
 
 ## sd-forge-cutoffの機能／What sd-forge-cutoff does
-　sd-forge-cutoffでは、まず、ターゲットに指定された語（青の色移りを防ぎたいなら`blue`）を`_`（アンダーバー）に置き換えて、**ダミープロンプト**を作ります。そして、**本物のプロンプトから作られたテンソルを、ダミーから作られたテンソルで中和**することで、カラーブリードを抑制します。もう少し詳しく説明すると、以下の通りです：
+　sd-forge-cutoffでは、まず、ターゲットに指定された語（青の色移りを防ぎたいなら`blue`）を`_`（アンダーバー）に置き換えて、**ダミープロンプト**を作ります。そして、**本物のプロンプトから作られたテンソルを、ダミーから作られたテンソルで中和**することで、カラーブリードを抑制します。もう少し詳しく説明すると、以下の通りです：  
+
   We first create a **dummy prompt** by replacing the target word (e.g., blue) with _, then **neutralize the real prompt’s tensor with the dummy’s** to suppress color bleed.
 
 ### (a) 2つのコンディショニングを作る／Build two conditionings
