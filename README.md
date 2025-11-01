@@ -352,6 +352,7 @@ Forgeのアーキテクチャ（`hijack` APIの廃止）に対応するため、
 ---
 ## Author/License
 - Rootport  
-  https://github.com/Rootport-AI
+  https://github.com/Rootport-AI  
   https://x.com/rootport
+  
 This project is licensed under the [MIT License](./LICENSE).
