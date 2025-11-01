@@ -8,22 +8,25 @@ SD WebUI Forge専用の**トークンの影響範囲を操作することでカ�
 
 ---
 ## 使い方／Usage
-1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。**Enable"(sd-forge-cutoff)"**が、画面上部に表示されるので、チェックを入れてください。
-   In Settings → User interface → **Quicksettings list**, add cutoff_forge_enable. Then a **Enable (sd-forge-cutoff)** checkbox appears in the top bar—turn it ON.  
+1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。**Enable"(sd-forge-cutoff)"**が、画面上部に表示されるので、チェックを入れてください。  
 2. Target tokensに、色移りを抑制したい単語を入力します。たとえば「`1girl, blue hair, white shirt, indoors`」というプロンプトで、髪の青さがシャツに色移りしているケースなら、「`blue,`」と記入します。  
-   In **Target tokens**, enter the word(s) whose color bleed you want to suppress. For example, with the prompt `1girl, blue hair, white shirt, indoors`, if the hair’s blue bleeds into the shirt, set `blue,`. 
 3. 画像を生成してください。
-   Generate an image. 　
 4. 前回の生成と同じプロンプトでTarget tokensだけを追加・変更すると、Cutoffが機能しなくなります。バッチサイズを変えて生成するか、checkpointモデルを一旦別のものに変えて元に戻すという手動操作をしてください。（理由は後述）
-   If you only add/modify **Target tokens** while leaving the prompt and settings otherwise unchanged, **Cutoff won’t run**. Change the batch size or temporarily switch the checkpoint and switch back (details below).
-**NOTE：** プロンプトには`_`（アンダーバー）を含めないことを推奨。含まれていると、Cutoffの性能が不安定になります。
-   Avoid using the underscore `_` in prompts. It can make Cutoff unstable.
+**注意：** プロンプトには`_`（アンダーバー）を含めないことを推奨。含まれていると、Cutoffの性能が不安定になります。
 **Strength α：** cutoffの効きの強さを調整します。高くするほどカラーブリードの抑制力が上がりますが、絵柄崩れのリスクが増します。低くすると絵柄崩れのリスクは減りますが、カラーブリードの抑止力も下がります。
-   Controls how strongly Cutoff acts. Higher values suppress color bleed more but increase the risk of artifacts; lower values reduce artifacts but may not suppress bleed enough.
+
+> 1. In Settings → User interface → **Quicksettings list**, add cutoff_forge_enable. Then a **Enable (sd-forge-cutoff)** checkbox appears in the top bar—turn it ON.  
+> 2. In **Target tokens**, enter the word(s) whose color bleed you want to suppress. For example, with the prompt `1girl, blue hair, white shirt, indoors`, if the hair’s blue bleeds into the shirt, set `blue,`.
+> 3. Generate an image.
+> 4. If you only add/modify **Target tokens** while leaving the prompt and settings otherwise unchanged, **Cutoff won’t run**. Change the batch size or temporarily switch the checkpoint and switch back (details below).
+> **NOTE:** Avoid using the underscore `_` in prompts. It can make Cutoff unstable.
+> **Strength α：** Controls how strongly Cutoff acts. Higher values suppress color bleed more but increase the risk of artifacts; lower values reduce artifacts but may not suppress bleed enough.
 
 ---
 
-```テストプロンプトA／Test prompt A
+
+テストプロンプトA／Test prompt A
+```
 masterpiece, best quality, absurdres, highres, newest,
 BREAK
 full body, 1girl, standing, blue hair, yellow eyes, blush smile, animal ears, cat ears, long braid, white shirt, sleeveless, [[ medium breasts, ]] purple elbow gloves, green bowtie, frilled skirt, black skirt, polka dot thighhighs, pale pink thighhighs, red pumps, indoors, white background,
@@ -46,7 +49,8 @@ Hires upscale: 1.5,
 Hires upscaler: R-ESRGAN 4x+ Anime6B, 
 ```
 
-```テストプロンプトB／Test prompt B
+テストプロンプトB／Test prompt B
+```
 masterpiece, best quality, absurdres, highres, newest,
 BREAK
 1girl, grey hair, yellow eyes, dark skin, smile, open mouth, standing, holding umbrella, blue umbrella, pale pink silk blouse, see-through raincoat, purple neon light, green scarf, glossy lips, black leather shorts, red rubber boots, reflective ground, cinematic lighting, rain, night, outdoors, street,
