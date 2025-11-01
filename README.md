@@ -113,7 +113,8 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。  
 （※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）  
 > - Original: C_orig (contains `blue`)  
-> - Dummy: C_dummy (obtained by replacing only blue with _)  
+> - Dummy: C_dummy (obtained by replacing only blue with _)
+>  
 >`_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
 >*(Geek note: `_` is a practical stand-in for padding.)*  
 
