@@ -215,8 +215,8 @@ flowchart TD
   end
 
   C1F --> X
-  Z --> X
   C2F --> X
+  Z --> X
   T --> X
 
   %% ========= STAGE 6: SCHEDULER & VAE =========
