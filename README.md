@@ -257,6 +257,7 @@ sd-forge-cutoffでは、プロンプトに`"_"`（アンダーバー）が含ま
 >  With `_` in the prompt, Cutoff becomes unstable—especially `blue_hair` vs `blue hair`. Cutoff replaces the target word (e.g., `blue`) with `_`.
 >  - `blue hair` → correctly becomes `_ hair`
 >  - `blue_hair` → replacement is **skipped** (because token boundaries are based on word boundaries, and `_` collapses them), so Victim/Dummy positions **no longer align**.
+>  
 >  Also, `_` is **not meaningless:** it’s tokenized, can increase token count, and shifts boundaries. Ideally we’d use true padding, but Forge doesn’t expose an API for that and the implementation cost is high—so we use `_`, same as the original sd-webui-cutoff.
 
 ---
