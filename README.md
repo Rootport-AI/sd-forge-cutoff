@@ -24,6 +24,7 @@ SD WebUI Forge専用の**トークンの影響範囲を操作することでカ�
 
 ---
 
+[![Test prompt A (control)](images/Test_prompt_A_control.png)](images/Test_prompt_A_control.png)
 
 テストプロンプトA／Test prompt A
 ```
@@ -297,12 +298,16 @@ sd-forge-cutoffは、デフォルトではvictim行の全体を中和対象に�
 
 ### Apply to TE1(SD/SDXL)/TE2
 SDXLのテキストエンコーダーには、以下２つの系統が存在します。  
-> SDXL has two text-encoder systems:
+
 - TE1 (Text Encoder 1): CLIP ViT-L/14  
-- TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14.
+- TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14  
   
 一般的には、TE1がプロンプトの「基本的な意味・構図」を理解し、TE2が「詳細なスタイル・質感」を補うとされています。  
 sd-forge-cutoffでは、デフォルトではこれら2系統の両翼で中和の処理を走らせます。Apply to TE1/TE2を操作することで、これを1系統ずつ選択できます。  
+> SDXL has two text-encoder systems:
+> - TE1 (Text Encoder 1): CLIP ViT-L/14  
+> - TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14.
+> 
 >  A common rule of thumb: **TE1** captures **meaning/layout**, **TE2** adds **style/detail**.
 >  By default, sd-forge-cutoff applies to **both**. You can select one via this option.
 
