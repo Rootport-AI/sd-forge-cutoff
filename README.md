@@ -4,7 +4,7 @@
 SD WebUI Forge専用の**トークンの影響範囲を操作することでカラーブリード（色移りや概念の混ざり）を防ぐ拡張機能**です。[hnmr293氏のsd-webui-cutoff](https://github.com/hnmr293/sd-webui-cutoff)からヒントを得ました。A1111 SD WebUIに存在したAPIの多くがForgeでは廃止されており、そのままでは移植できなかったため、Forge版Cutoffを新規開発しました。
 > An SD WebUI Forge–only extension that prevents color bleed (unwanted color transfer / concept mixing) by controlling the influence range of specific tokens. It’s inspired by [hnmr293/sd-webui-cutoff](https://github.com/hnmr293/sd-webui-cutoff)
 
-![sd-forge-cutoff_preview-001](sd-forge-cutoff_preview-001.jpg)
+![sd-forge-cutoff_preview-001](images/sd-forge-cutoff_preview-001.jpg)
 
 ---
 ## 使い方／Usage
@@ -286,7 +286,7 @@ sd-forge-cutoffは、デフォルトではvictim行の全体を中和対象に�
 これは、絵柄崩壊が大きいときに効果を発揮します。
 >  Explicitly exclude tokens from neutralization—useful when the image degrades.
 
-![sd-forge-cutoff_preview-002](sd-forge-cutoff_preview-002.jpg)
+![sd-forge-cutoff_preview-002](images/sd-forge-cutoff_preview-002.jpg)
 
 たとえば先述のテストプロンプトAで、ターゲットに「`frilled`」を指定した場合、背景が描かれず灰色一色になってしまいます。これは、`frilled`が色語に比べて抽象度の高い意味を持つトークンであり、衣服だけでなく背景にも薄く広く干渉しているためです。Exclude from processingに`indoors, background,`を指定すると、背景の描画が復活します。
 > Example: with Test Prompt A and Target=`frilled`, the background can turn gray because `frilled` is abstract and touches background tokens as well. Excluding `indoors, background` recovers the background.
