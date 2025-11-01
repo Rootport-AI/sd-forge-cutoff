@@ -113,7 +113,7 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 - **ターゲット（blue）だけを `_` に置き換えたダミープロンプトから得た行列：C_dummy**（`blue` の寄与が取り除かれた行列）  
   > Dummy: C_dummy (obtained by replacing only blue with _)
   
-ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。
+ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。  
 （※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）
 > `_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
 > *(Geek note: `_` is a practical stand-in for padding.)*  
@@ -121,12 +121,14 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 
 ### (b) 「影響を切りたい行（Victim）」だけを置き換える／Replace only the rows you want to damp (Victim)
 `shirt` や `indoors` など Victim 行集合 V に対してだけ、C を次のように更新します（Lerp の場合）：
-> For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):
-
+> For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):  
+<br>
+<br>
 ```math
 C_{\text{final}}[V] \;=\; (1-\alpha)\, C_{\text{orig}}[V] \;+\; \alpha \, C_{\text{dummy}}[V]
 ```
-
+<br>
+<br>
 Slerp を使う場合は、向き（方向）を保ったまま大きさを補間しますが、本質は同じです：  
 “元の行ベクトルから、`blue` に相当する成分だけを部分的に抜く” という操作になります。  
 > With **Slerp**, we move along the spherical arc (preserving direction better), but the idea is the same: **partially subtract the `blue` component only from Victim rows.**
