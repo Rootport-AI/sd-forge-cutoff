@@ -233,17 +233,16 @@ A1111 SD WebUIでは`hijack`と名付けられたAPI群により、U-netに入�
 問題は、Forge本体のCTPEキャッシュ作成を、拡張機能側から操作する手段がほぼないことです。  
 Forgeはプロンプトなどの設定が同じまま生成を行うと、CTPEキャッシュを使い回します（＝キャッシュが新規に作成されません）。結果、sd-forge-cutoffはCTPEキャッシュの作成を検知できず、処理も走りません。  
 ForgeがCTPEキャッシュを作成するのは、主に以下の場合です。
-> The catch: **extensions can’t force CTPE cache rebuilds**. If **prompt/settings are unchanged**, Forge **reuses** the cache—**no new cache, no Cutoff run.**
-  CTPE cache typically rebuilds when:
-
 1. プロンプトが（1文字でも）変わったとき  
-  > Prompt changes (even by one character)  
 2. バッチサイズが変わったとき  
-  > Batch size changes   
 3. モデルデータ(checkpoint)が変わったとき  
-  > Batch size changes  
-
 このうち出力結果への悪影響が少ないものとして、ここでは2. および3.　の手動操作によるキャッシュ更新を推奨しています。  
+
+> The catch: **extensions can’t force CTPE cache rebuilds**. If **prompt/settings are unchanged**, Forge **reuses** the cache—**no new cache, no Cutoff run.**
+> CTPE cache typically rebuilds when:
+> 1. Prompt changes (even by one character)  
+> 2. Batch size changes
+> 3. Batch size changes   
 > To avoid visual shifts, we recommend (2) or (3) as a manual refresh step.
 
 ## なぜ`"_"`を含むプロンプトは非推奨なの？／Why prompts containing _ are discouraged   
