@@ -134,13 +134,12 @@ Slerp を使う場合は、向き（方向）を保ったまま大きさを補�
 ### (c) 何が起きるか（アテンション経路の遮断）／What this changes (cutting the attention path)
 U-Net のクロスアテンションは C の各行を Keys/Values として参照します。  
 Victim 行を C_dummy へ寄せることで、その行が持っていた `blue` 方向の情報が弱まり、  
-> U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
 - `shirt` 行 → `blue` への結びつきが薄くなる  
-  > `shirt` rows: **weakened** association to `blue`
-- `hair` 行 → 置き換えないので `blue` はそのまま強く残る
-  > `hair` rows: **unchanged**, keep `blue` strong
-  
+- `hair` 行 → 置き換えないので `blue` はそのまま強く残る  
 という **“局所的な引き算”**が実現します。結果、`blue` の影響経路を 「髪」には残しつつ、「シャツ」では弱められる → ブリードが減る、というメカニズムです。  
+> U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
+> - `shirt` rows: **weakened** association to `blue`
+> -  `hair` rows: **unchanged**, keep `blue` strong  
 > This is a **local, row-wise subtraction**, reducing `blue` on the shirt while keeping it on the hair.
 
 ### (d)　プロンプトの**重みづけ表現**と何が違うの？／How is this different from prompt weighting?
