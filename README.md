@@ -109,12 +109,11 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 
 ### (a) 2つのコンディショニングを作る／Build two conditionings
 - **元の最終行列：C_orig**（`blue` を含む行列）
-  > Original: C_orig (contains `blue`)
-- **ターゲット（blue）だけを `_` に置き換えたダミープロンプトから得た行列：C_dummy**（`blue` の寄与が取り除かれた行列）  
-  > Dummy: C_dummy (obtained by replacing only blue with _)
-  
+- **ターゲット（blue）だけを `_` に置き換えたダミープロンプトから得た行列：C_dummy**（`blue` の寄与が取り除かれた行列）    
 ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。  
-（※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）
+（※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）  
+> - Original: C_orig (contains `blue`)  
+> - Dummy: C_dummy (obtained by replacing only blue with _)  
 > `_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
 > *(Geek note: `_` is a practical stand-in for padding.)*  
 
