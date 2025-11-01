@@ -8,7 +8,7 @@ SD WebUI Forge専用の**トークンの影響範囲を操作することでカ�
 
 ---
 ## 使い方／Usage
-1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。**Enable"(sd-forge-cutoff)"**が、画面上部に表示されるので、チェックを入れてください。  
+1. WebUIのSettingsタブ→User interface→Quicksettings listから、cutoff_forge_enableを選択してください。 **Enable"(sd-forge-cutoff)"** が画面上部に表示されるので、チェックを入れてください。  
 2. Target tokensに、色移りを抑制したい単語を入力します。たとえば「`1girl, blue hair, white shirt, indoors`」というプロンプトで、髪の青さがシャツに色移りしているケースなら、「`blue,`」と記入します。  
 3. 画像を生成してください。
 4. 前回の生成と同じプロンプトでTarget tokensだけを追加・変更すると、Cutoffが機能しなくなります。バッチサイズを変えて生成するか、checkpointモデルを一旦別のものに変えて元に戻すという手動操作をしてください。（理由は後述）  
@@ -77,34 +77,35 @@ Hires upscaler: R-ESRGAN 4x+ Anime6B,
 # 仕組み／How it works
 ## なぜカラーブリードは生じるのか／Why color bleed happens  
 ここでは、たとえば`1girl, blue hair, white shirt, indoors`でシャツまで青くなってしまうケースで考察します。プロンプトでは`white shirt,`と指定しているのに、なぜ髪の色がシャツに混色してしまうのでしょうか？ 　
-  Take `1girl, blue hair, white shirt, indoors` as an example where the shirt turns bluish even though we specified `white shirt`. Why does the hair color spill onto the shirt?
+> Take `1girl, blue hair, white shirt, indoors` as an example where the shirt turns bluish even though we specified `white shirt`. Why does the hair color spill onto the shirt?
 
-### (a) プロンプト → 最終コンディショニング行列／Prompt → final conditioning matrix 
+### (a) プロンプト → 最終コンディショニング行列／Prompt → final conditioning matrix  
 文字情報で書かれたプロンプトは、そのままでは**U-net（Stable Diffusionの心臓部）**では読み込めません。プロンプトのテキストをまずトークン化し、さらにU-netが読み込み可能な**テンソル（数値データのセット）**に変換する必要があります。
 SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系統）**を通って、最終的に **S×H** の**行列 C**（S=トークン列長、H=隠れ次元）になります。この C が U-Net のクロスアテンションの **“文脈（context）”**として、全層・全ステップで参照されます。
 *（※文系ユーザー向けのメモ：テンソルとは、噛み砕いていえば「ひとまとまりの数値データのセットを並べたもの」のことです。一次元のテンソルをベクトル、二次元のテンソルを行列と呼びます。）* 　
-  A text prompt can’t be fed to the **U-Net** directly. It is **tokenized** then converted into numeric tensors that U-Net can read.
-  In SDXL, tokens pass through **two text encoders (TE1/TE2)** and form a final matrix **C** of shape **S×H** (S = sequence length, H = hidden size). This C is referenced as context by the U-Net’s cross-attention at every layer and step.
-  *(Note for non-engineers: a tensor is a “multi-axis table of numbers.” 1-D = vector, 2-D = matrix.)*
+>A text prompt can’t be fed to the **U-Net** directly. It is **tokenized** then converted into numeric tensors that U-Net can read.
+>In SDXL, tokens pass through **two text encoders (TE1/TE2)** and form a final matrix **C** of shape **S×H** (S = sequence length, H = hidden size). This C is referenced as context by the U-Net’s cross-attention at every layer and step.
+>*(Note for non-engineers: a tensor is a “multi-axis table of numbers.” 1-D = vector, 2-D = matrix.)*
 
 ### (b) “色語”は部位を知らない／“Color words” don’t know body parts  
 `blue` は **「色の概念ベクトル」** ですが、髪かシャツかを単独で判別しません。モデルはクロスアテンションで「画像のどこに `blue` を割り当てるか」を**確率的に決めます**。 `hair`が一緒にあれば`blue`を適用すべき位置のヒントにはなりますが、以下の理由で**漏れ（ブリード）**がしばしば生じます。
 - **共起バイアス：** 学習データに「青い髪」と「青い服」が同時に描かれた画像が多かった（偏りがあった）場合 → `blue` が衣服トークン（`shirt`）にも**弱く結びつきます**。
 - **アテンションの拡散：** クロスアテンションは各トークンの相互の影響を完全に分離することはできないため、`blue` の影響が「髪」以外のトークン行（`shirt`, `indoors` など）にも混入することがあります。
 - **位置依存の弱さ：** 文法上の近接（blue の直後に hair）は手がかりになりますが、完全ではありません。クロスアテンションの仕組み上、単語の位置を完全に分離することはできません。 　
-  `blue` is a **color concept vector**—it does not, by itself, know whether it should apply to hair or shirt. Cross-attention probabilistically decides **where** to attribute `blue`. Having `hair` nearby helps localize, but bleed still occurs because:
-  - **Co-occurrence bias:** If training images often depict **blue hair and blue clothes together**, `blue` can **weakly associate** with shirt as well.
-  - **Attention spill:** Cross-attention can’t perfectly isolate token effects; `blue` can leak into token rows like `shirt` or `indoors`.
-  - **Limited positional cues:** Being adjacent (`blue` right before `hair`) is only a hint—positions aren’t perfectly separable.
+
+> `blue` is a **color concept vector**—it does not, by itself, know whether it should apply to hair or shirt. Cross-attention probabilistically decides **where** to attribute `blue`. Having `hair` nearby helps localize, but bleed still occurs because:
+> - **Co-occurrence bias:** If training images often depict **blue hair and blue clothes together**, `blue` can **weakly associate** with shirt as well.
+> - **Attention spill:** Cross-attention can’t perfectly isolate token effects; `blue` can leak into token rows like `shirt` or `indoors`.
+> - **Limited positional cues:** Being adjacent (`blue` right before `hair`) is only a hint—positions aren’t perfectly separable.
 
 結果として、U-Net側のクロスアテンションは「髪の他にシャツにも blue の重みを少し載せる」→ 生成像でシャツに青が載ってしまう、という“カラーブリード”が生じるわけです。
-  As a result, U-Net may place a small `blue` weight on **shirt** as well as **hair**, causing **color bleed**.
+> As a result, U-Net may place a small `blue` weight on **shirt** as well as **hair**, causing **color bleed**.
 
 ---
 
 ## sd-forge-cutoffの機能／What sd-forge-cutoff does
 　sd-forge-cutoffでは、まず、ターゲットに指定された語（青の色移りを防ぎたいなら`blue`）を`_`（アンダーバー）に置き換えて、**ダミープロンプト**を作ります。そして、**本物のプロンプトから作られたテンソルを、ダミーから作られたテンソルで中和**することで、カラーブリードを抑制します。もう少し詳しく説明すると、以下の通りです：
-  We first create a **dummy prompt** by replacing the target word (e.g., blue) with _, then **neutralize the real prompt’s tensor with the dummy’s** to suppress color bleed.
+> We first create a **dummy prompt** by replacing the target word (e.g., blue) with _, then **neutralize the real prompt’s tensor with the dummy’s** to suppress color bleed.
 
 ### (a) 2つのコンディショニングを作る／Build two conditionings
 - **元の最終行列：C_orig**（`blue` を含む行列）／Original: C_orig (contains `blue`)
@@ -112,7 +113,8 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
   
 ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。
 （※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）
-  `_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.(Geek note: `_` is a practical stand-in for padding.)
+> `_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
+> *(Geek note: `_` is a practical stand-in for padding.)*  
 
 
 ### (b) 「影響を切りたい行（Victim）」だけを置き換える／Replace only the rows you want to damp (Victim)
