@@ -136,10 +136,12 @@ U-Net のクロスアテンションは C の各行を Keys/Values として参�
 Victim 行を C_dummy へ寄せることで、その行が持っていた `blue` 方向の情報が弱まり、  
 - `shirt` 行 → `blue` への結びつきが薄くなる  
 - `hair` 行 → 置き換えないので `blue` はそのまま強く残る  
+
 という **“局所的な引き算”**が実現します。結果、`blue` の影響経路を 「髪」には残しつつ、「シャツ」では弱められる → ブリードが減る、というメカニズムです。  
 > U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
 > - `shirt` rows: **weakened** association to `blue`
-> -  `hair` rows: **unchanged**, keep `blue` strong  
+> -  `hair` rows: **unchanged**, keep `blue` strong
+>  
 > This is a **local, row-wise subtraction**, reducing `blue` on the shirt while keeping it on the hair.
 
 ### (d)　プロンプトの**重みづけ表現**と何が違うの？／How is this different from prompt weighting?
@@ -242,7 +244,8 @@ ForgeがCTPEキャッシュを作成するのは、主に以下の場合です�
 > CTPE cache typically rebuilds when:
 > 1. Prompt changes (even by one character)  
 > 2. Batch size changes
-> 3. Batch size changes   
+> 3. Batch size changes
+>  
 > To avoid visual shifts, we recommend (2) or (3) as a manual refresh step.
 
 ## なぜ`"_"`を含むプロンプトは非推奨なの？／Why prompts containing _ are discouraged   
@@ -294,8 +297,9 @@ sd-forge-cutoffは、デフォルトではvictim行の全体を中和対象に�
 ### Apply to TE1(SD/SDXL)/TE2
 SDXLのテキストエンコーダーには、以下２つの系統が存在します。  
 > SDXL has two text-encoder systems:
-- TE1 (Text Encoder 1): CLIP ViT-L/14 
-- TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14. 
+- TE1 (Text Encoder 1): CLIP ViT-L/14  
+- TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14.
+  
 一般的には、TE1がプロンプトの「基本的な意味・構図」を理解し、TE2が「詳細なスタイル・質感」を補うとされています。  
 sd-forge-cutoffでは、デフォルトではこれら2系統の両翼で中和の処理を走らせます。Apply to TE1/TE2を操作することで、これを1系統ずつ選択できます。  
 >  A common rule of thumb: **TE1** captures **meaning/layout**, **TE2** adds **style/detail**.
@@ -305,7 +309,8 @@ sd-forge-cutoffでは、デフォルトではこれら2系統の両翼で中和�
 中和処理の計算方法を選択します。ざっくりいうと、Lerp は「まっすぐ混ぜる」線形補間、Slerp は「方向を保ったまま回す」球面補間です。私の実験では、Slerpのほうがカラーブリード抑制の性能が高く、ポーズなども崩れにくいという印象です。一方、Lerpには計算が軽いという利点がありますが、現代の高性能なデバイスでは処理時間の差は軽微であり、カラーブリード抑制という目標から考えると優位性をあまり感じません。
 >  Chooses the mixing method. Roughly:  
 >  - Lerp: linear mix (lighter, but can “wash out” under strong α)  
->  - Slerp: spherical mix (preserves direction; more robust under strong α)  
+>  - Slerp: spherical mix (preserves direction; more robust under strong α)
+>  
 >  In our testing, **Slerp* tends to suppress bleed better while keeping pose stable. Lerp is lighter but the runtime difference is usually negligible on modern devices.
 
 ##　Sanity test (for debug)  
@@ -318,12 +323,14 @@ Forgeの画像生成経路にこの拡張機能が干渉できているかどう
 ## 動作検証／Compatibility & Validation
 この拡張機能は、StabilityMatrix版SD WebUI Forgeで動作検証しています。A1111では動作しません。一方、Forgeファミリーでは動作する可能性があります。  
 - `backend.text_processing.classic_engine`モジュールが存在し、`__call__`メソッドがパッチ可能であること。  
-- `backend.sampling.condition`モジュールが存在し、`ConditionCrossAttn.process_cond`メソッドがパッチ可能であること。  
+- `backend.sampling.condition`モジュールが存在し、`ConditionCrossAttn.process_cond`メソッドがパッチ可能であること。
+  
 以上2つの条件を満たすなら、おそらく動作します。要するに`\stable-diffusion-webui-forge\backend`のディレクトリの内容を改修していなければ動作する可能性が高いです。
 
 > This extension is tested on **SD WebUI Forge (StabilityMatrix build)**. It **does not** run on A1111. It may run on Forge family builds that meet:
 > - `backend.text_processing.classic_engine` exists and its `__call__` can be patched.
-> - `backend.sampling.condition` exists and `ConditionCrossAttn.process_cond` can be patched.
+> - `backend.sampling.condition` exists and `ConditionCrossAttn.process_cond` can be patched.  
+>  
 > In short, if your `\stable-diffusion-webui-forge\backend` directory hasn’t been modified, there’s a good chance it will work.    
 
 ---
