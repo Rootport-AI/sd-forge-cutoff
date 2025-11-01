@@ -145,7 +145,7 @@ Victim 行を C_dummy へ寄せることで、その行が持っていた `blue`
 ### (d)　プロンプトの**重みづけ表現**と何が違うの？／How is this different from prompt weighting?
 Stable Diffuisonでは、`[blue]`や`(blue:0.8)`のような**重みづけ表現**によって、プロンプトの一部の影響を弱められます。このような表記をすると、**プロンプト全体に対する`blue`の影響**が弱まります。  
 一方、Cutoffは「特定のトークンには`blue`の影響を残したまま、他の部分への影響を抑える」という挙動が期待できます。  
-  Prompt weighting like `[blue]` or `(blue:0.8)` weakens `blue` **globally**, across the whole prompt. Cutoff instead **keeps** `blue` **where you want it** and **suppresses it only where you don’t** (on Victim rows).
+> Prompt weighting like `[blue]` or `(blue:0.8)` weakens `blue` **globally**, across the whole prompt. Cutoff instead **keeps** `blue` **where you want it** and **suppresses it only where you don’t** (on Victim rows).  
 
 ```mermaid
 flowchart TD
@@ -228,20 +228,23 @@ flowchart TD
 sd-forge-cutoffはその仕様上、victimとdummyの行の位置を完全に一致させる必要があります。victim行の中で`blue`の情報がエンコードされている位置と、dummy行の中で`_`の情報がエンコードされてい位置を、ぴったり重ねなければなりません。
 A1111 SD WebUIでは`hijack`と名付けられたAPI群により、U-netに入る直前のcondを入手することができたため、victimとdummyを一致させることが比較的容易でした。一方、Forgeでhijack系のAPIが廃止されています。
 そこでsd-forge-cutoffでは、Forge本体におけるCTPEキャッシュの作成に依存した設計を選びました。CTPEキャッシュが作成されるときに飛んでくる情報にぶら下がる形で処理を走らせれば、原理上、victimとdummyとをほぼ確実に一致させることができます。  
-  sd-forge-cutoff must **align Victim rows and Dummy rows exactly**. The token positions containing `blue` (in Victim) and `_` (in Dummy) must **match 1:1**. In A1111, “hijack” APIs let us grab the conditioning right before U-Net, so alignment was simpler. Forge **removed** those APIs. Therefore sd-forge-cutoff **depends on Forge’s CTPE cache:** when the cache is constructed, we latch onto the information to ensure alignment.
+> sd-forge-cutoff must **align Victim rows and Dummy rows exactly**. The token positions containing `blue` (in Victim) and `_` (in Dummy) must **match 1:1**. In A1111, “hijack” APIs let us grab the conditioning right before U-Net, so alignment was simpler. Forge **removed** those APIs. Therefore sd-forge-cutoff **depends on Forge’s CTPE cache:** when the cache is constructed, we latch onto the information to ensure alignment.
 
 問題は、Forge本体のCTPEキャッシュ作成を、拡張機能側から操作する手段がほぼないことです。  
 Forgeはプロンプトなどの設定が同じまま生成を行うと、CTPEキャッシュを使い回します（＝キャッシュが新規に作成されません）。結果、sd-forge-cutoffはCTPEキャッシュの作成を検知できず、処理も走りません。  
 ForgeがCTPEキャッシュを作成するのは、主に以下の場合です。
-  The catch: **extensions can’t force CTPE cache rebuilds**. If **prompt/settings are unchanged**, Forge **reuses** the cache—**no new cache, no Cutoff run.**
+> The catch: **extensions can’t force CTPE cache rebuilds**. If **prompt/settings are unchanged**, Forge **reuses** the cache—**no new cache, no Cutoff run.**
   CTPE cache typically rebuilds when:
 
-1. プロンプトが（1文字でも）変わったとき／Prompt changes (even by one character)  
-2. バッチサイズが変わったとき／Batch size changes   
-3. モデルデータ(checkpoint)が変わったとき／Batch size changes  
+1. プロンプトが（1文字でも）変わったとき  
+  > Prompt changes (even by one character)  
+2. バッチサイズが変わったとき  
+  > Batch size changes   
+3. モデルデータ(checkpoint)が変わったとき  
+  > Batch size changes  
 
 このうち出力結果への悪影響が少ないものとして、ここでは2. および3.　の手動操作によるキャッシュ更新を推奨しています。  
-  To avoid visual shifts, we recommend (2) or (3) as a manual refresh step.
+> To avoid visual shifts, we recommend (2) or (3) as a manual refresh step.
 
 ## なぜ`"_"`を含むプロンプトは非推奨なの？／Why prompts containing _ are discouraged   
 sd-forge-cutoffでは、プロンプトに`"_"`（アンダーバー）が含まれていると挙動が不安定になります。とくに`blue hair`を`blue_hair`のようにアンダーバーで繋いで表記した場合、期待通りの挙動になりません。  
@@ -249,17 +252,15 @@ sd-forge-cutoffでは、プロンプトに`"_"`（アンダーバー）が含ま
 `blue hair`は、正しく`_ hair`に置き換えられます。が、`blue_hair`は置換そのものがスキップされます。単語の区切りに基づいてターゲットを検索するため、単語の区切りが`_`で埋められると、`blue`という単語そのものを発見できなくなるからです。結果、victim行とdummy行が一致しなくなります。  
 `_`は意味の薄い記号ですが、全く意味がないわけではありません。たとえば、WebUIのプロンプト入力欄の右上にはトークン数の概算が表示されていますが、`blue hair`と`blue_hair`ではトークンの数が変わることを確認できるはずです。基本的には、`_`を含むほうがトークン数は増えます。これは、`_`もトークンとしてエンコードされるため、`_`の有無によって語句をトークン化するときの区切り位置が変わってしまうからです。  
 理想を言えば、sd-forge-cutoffは`_`で代替するのではなく、真のパディングを用いるべきです。しかし、真のパディングを提供するAPIはForgeには存在せず、また、その実装難易度は極めて高いため、`_`で代用することにしました。これは本家sd-webui-cutoffと同様の仕様です。  
-  With `_` in the prompt, Cutoff becomes unstable—especially `blue_hair` vs `blue hair`. Cutoff replaces the target word (e.g., `blue`) with `_`.
- 
-  - `blue hair` → correctly becomes `_ hair`
-  - `blue_hair` → replacement is **skipped** (because token boundaries are based on word boundaries, and `_` collapses them), so Victim/Dummy positions **no longer align**.
- 
-  Also, `_` is **not meaningless:** it’s tokenized, can increase token count, and shifts boundaries. Ideally we’d use true padding, but Forge doesn’t expose an API for that and the implementation cost is high—so we use `_`, same as the original sd-webui-cutoff.
+>  With `_` in the prompt, Cutoff becomes unstable—especially `blue_hair` vs `blue hair`. Cutoff replaces the target word (e.g., `blue`) with `_`.
+>  - `blue hair` → correctly becomes `_ hair`
+>  - `blue_hair` → replacement is **skipped** (because token boundaries are based on word boundaries, and `_` collapses them), so Victim/Dummy positions **no longer align**.
+>  Also, `_` is **not meaningless:** it’s tokenized, can increase token count, and shifts boundaries. Ideally we’d use true padding, but Forge doesn’t expose an API for that and the implementation cost is high—so we use `_`, same as the original sd-webui-cutoff.
 
 ---
 ## Advanced
-sd-forge-cutoffでは、仕様を理解しているユーザーに向けて以下のAdvanced機能を用意しました。
-  Advanced options for users who understand the mechanism:
+sd-forge-cutoffでは、仕様を理解しているユーザーに向けて以下のAdvanced機能を用意しました。  
+>  Advanced options for users who understand the mechanism:
 
 1. Source Expansion (±N)
 2. Exclude from processing
@@ -271,67 +272,66 @@ sd-forge-cutoffでは、仕様を理解しているユーザーに向けて以�
 ### Source Expansion (±N)
 sd-forge-cutoffは、デフォルトではvictim行の全体を中和対象にします。しかし、たとえば`blue hair`の`blue`をターゲットに指定した場合、そのままではhairまで中和対象となり、本来なら青くしたい髪からも色が抜けてしまうリスクがあります。
 そこで、sd-forge-cutoffには「（カンマなどのトークン区切り記号の範囲内で）**前後N個までのトークンを中和から保護する**」という機能をつけました。たとえば`1girl, blue hair, white shirt, indoors`というプロンプトで、ターゲットは`blue`、N=1の場合、`hair`が中和の対象から外されます。もしも`blue long hair`だったなら、N=2を指定することが推奨されます。  
-  By default, **all Victim rows** are neutralized. If the target is `blue` in `blue hair`, the hair could also be neutralized, washing out the very color you want to keep.
-  Source expansion protects **±N tokens in the same comma-bound phrase** near the target.
-  Example: with `1girl, blue hair, white shirt, indoors`, Target=`blue`, N=1 protects `hair`. If it’s `blue long hair`, **N=2** is recommended.
+>  By default, **all Victim rows** are neutralized. If the target is `blue` in `blue hair`, the hair could also be neutralized, washing out the very color you want to keep.
+>  Source expansion protects **±N tokens in the same comma-bound phrase** near the target.
+>  Example: with `1girl, blue hair, white shirt, indoors`, Target=`blue`, N=1 protects `hair`. If it’s `blue long hair`, **N=2** is recommended.
 
 ### Exclude from processing
 上記のSource Expansion (±N)とは別途で、中和の対象から外したいトークンを指定する機能です。
 これは、絵柄崩壊が大きいときに効果を発揮します。
-  Explicitly exclude tokens from neutralization—useful when the image degrades.
+>  Explicitly exclude tokens from neutralization—useful when the image degrades.
 
 ※ここにスクショを貼る。
 
 たとえば先述のテストプロンプトAで、ターゲットに「`frilled`」を指定した場合、背景が描かれず灰色一色になってしまいます。これは、`frilled`が色語に比べて抽象度の高い意味を持つトークンであり、衣服だけでなく背景にも薄く広く干渉しているためです。Exclude from processingに`indoors, background,`を指定すると、背景の描画が復活します。
-Example: with Test Prompt A and Target=`frilled`, the background can turn gray because `frilled` is abstract and touches background tokens as well. Excluding `indoors, background` recovers the background.
+> Example: with Test Prompt A and Target=`frilled`, the background can turn gray because `frilled` is abstract and touches background tokens as well. Excluding `indoors, background` recovers the background.
 
 ### Processing target
 上記のExclude from processingとは逆に、中和の対象を明示したいときに使います。ここに何らかの文字列が入っている場合、victim行の全体を中和するという機能はスキップされ、victim行の中の`Processing target`のトークンがエンコードされた位置のみが中和されます。
 **Tips:** ここには「実際にTarget tokensの影響を受けているトークン」を指定する必要があります。たとえばTarget tokens=`blue`、Processing target=`shirt`を指定した場合、もしもシャツのトークンが青のトークンに影響されていなければ、何も中和されず、Enable=offで生成した場合とほぼ同じ出力結果になります。生成結果の見た目では「髪の青さがシャツに影響している」ように見えたとしても、実際にはそうではない（シャツは別の要因で青くなっている）ケースがあるのです。
-  The inverse: **restrict** neutralization **only to the tokens listed here**. If this is non-empty, the “neutralize all Victim rows” step is skipped and only positions that match the **Processing targets** are neutralized.
-  **Tips:** List tokens **actually under the influence** of the Target tokens. If Target=`blue`, Processing=`shirt`, but the shirt isn’t affected by `blue`, nothing will be neutralized and the result will look like Enable=off.
+> The inverse: **restrict** neutralization **only to the tokens listed here**. If this is non-empty, the “neutralize all Victim rows” step is skipped and only positions that match the **Processing targets** are neutralized.
+> **Tips:** List tokens **actually under the influence** of the Target tokens. If Target=`blue`, Processing=`shirt`, but the shirt isn’t affected by `blue`, nothing will be neutralized and the result will look like Enable=off.
 
 ### Apply to TE1(SD/SDXL)/TE2
 SDXLのテキストエンコーダーには、以下２つの系統が存在します。  
-  SDXL has two text-encoder systems:
+> SDXL has two text-encoder systems:
 - TE1 (Text Encoder 1): CLIP ViT-L/14 
 - TE2 (Text Encoder 2): OpenCLIP ViT-bigG/14. 
 一般的には、TE1がプロンプトの「基本的な意味・構図」を理解し、TE2が「詳細なスタイル・質感」を補うとされています。  
 sd-forge-cutoffでは、デフォルトではこれら2系統の両翼で中和の処理を走らせます。Apply to TE1/TE2を操作することで、これを1系統ずつ選択できます。  
-  A common rule of thumb: **TE1** captures **meaning/layout**, **TE2** adds **style/detail**.
-  By default, sd-forge-cutoff applies to **both**. You can select one via this option.
+>  A common rule of thumb: **TE1** captures **meaning/layout**, **TE2** adds **style/detail**.
+>  By default, sd-forge-cutoff applies to **both**. You can select one via this option.
 
 ### Interpolation Lerp/Slerp
 中和処理の計算方法を選択します。ざっくりいうと、Lerp は「まっすぐ混ぜる」線形補間、Slerp は「方向を保ったまま回す」球面補間です。私の実験では、Slerpのほうがカラーブリード抑制の性能が高く、ポーズなども崩れにくいという印象です。一方、Lerpには計算が軽いという利点がありますが、現代の高性能なデバイスでは処理時間の差は軽微であり、カラーブリード抑制という目標から考えると優位性をあまり感じません。
-  Chooses the mixing method. Roughly:  
-  - Lerp: linear mix (lighter, but can “wash out” under strong α)  
-  - Slerp: spherical mix (preserves direction; more robust under strong α)  
-  In our testing, **Slerp* tends to suppress bleed better while keeping pose stable. Lerp is lighter but the runtime difference is usually negligible on modern devices.
+>  Chooses the mixing method. Roughly:  
+>  - Lerp: linear mix (lighter, but can “wash out” under strong α)  
+>  - Slerp: spherical mix (preserves direction; more robust under strong α)  
+>  In our testing, **Slerp* tends to suppress bleed better while keeping pose stable. Lerp is lighter but the runtime difference is usually negligible on modern devices.
 
 ##　Sanity test (for debug)  
 Forgeの画像生成経路にこの拡張機能が干渉できているかどうかを確認するための、デバッグ用の機能です。プロンプト末尾の **N% のトークンを丸ごと** 中和します。*Target / Exclude / Processing* は無視されます。**Enable／Strength／Interpolation（Lerp/Slerp）／Apply to TE1/TE2** の効きと、キャッシュ更新の要否を確認する用途です。  
 実運用では **OFF** にしてください。
-  Debug aid to verify the pipeline is wired correctly. Temporarily neutralizes the last N% of tokens in the prompt. It **ignores** *Target / Exclude / Processing*, but **Enable / Strength / Interpolation / Apply to TE1/TE2** take effect, and you can also check if a cache refresh is needed.
-  Use a small N (e.g., 10–20%). **Turn OFF** for real renders.
+>  Debug aid to verify the pipeline is wired correctly. Temporarily neutralizes the last N% of tokens in the prompt. It **ignores** *Target / Exclude / Processing*, but **Enable / Strength / Interpolation / Apply to TE1/TE2** take effect, and you can also check if a cache refresh is needed.  
+> **Turn OFF** for real renders.  
 
 ---
 ## 動作検証／Compatibility & Validation
-この拡張機能は、StabilityMatrix版SD WebUI Forgeで動作検証しています。A1111では動作しません。一方、Forgeファミリーでは動作する可能性があります。
-  This extension is tested on **SD WebUI Forge (StabilityMatrix build)**. It **does not** run on A1111. It may run on Forge family builds that meet:
-- `backend.text_processing.classic_engine`モジュールが存在し、`__call__`メソッドがパッチ可能であること。
-  `backend.text_processing.classic_engine` exists and its `__call__` can be patched.
-- `backend.sampling.condition`モジュールが存在し、`ConditionCrossAttn.process_cond`メソッドがパッチ可能であること。
-  `backend.sampling.condition` exists and `ConditionCrossAttn.process_cond` can be patched.
+この拡張機能は、StabilityMatrix版SD WebUI Forgeで動作検証しています。A1111では動作しません。一方、Forgeファミリーでは動作する可能性があります。  
+- `backend.text_processing.classic_engine`モジュールが存在し、`__call__`メソッドがパッチ可能であること。  
+- `backend.sampling.condition`モジュールが存在し、`ConditionCrossAttn.process_cond`メソッドがパッチ可能であること。  
 以上2つの条件を満たすなら、おそらく動作します。要するに`\stable-diffusion-webui-forge\backend`のディレクトリの内容を改修していなければ動作する可能性が高いです。
-  In short, if your `\stable-diffusion-webui-forge\backend` directory hasn’t been modified, there’s a good chance it will work.
+
+> This extension is tested on **SD WebUI Forge (StabilityMatrix build)**. It **does not** run on A1111. It may run on Forge family builds that meet:
+> - `backend.text_processing.classic_engine` exists and its `__call__` can be patched.
+> - `backend.sampling.condition` exists and `ConditionCrossAttn.process_cond` can be patched.
+> In short, if your `\stable-diffusion-webui-forge\backend` directory hasn’t been modified, there’s a good chance it will work.    
 
 ---
 ## 謝辞／Acknowledgments
-この拡張機能は、[hnmr293氏によるsd-webui-cutoff](https://github.com/hnmr293/sd-webui-cutoff)の素晴らしいコンセプトとアルゴリズムに強くインスパイアされています。
-  This work is strongly inspired by the great concept and algorithm of [sd-webui-cutoff by hnmr293](https://github.com/hnmr293/sd-webui-cutoff).
-
-Forgeのアーキテクチャ（`hijack` APIの廃止）に対応するため、`sd-webui-cutoff`のU-Netフックとは異なるアプローチ（CTPEとConditionCrossAttnへのパッチ）で機能を再実装しました。
-  To adapt to Forge’s architecture (no `hijack` API), we re-implemented the feature with a different approach (patching **CTPE** and **ConditionCrossAttn**) instead of the original U-Net hook.
-
-偉大な先駆者であるhnmr293氏に、心からの敬意と感謝を申し上げます。
-  Many thanks and respect to hnmr293 for the pioneering work.
+この拡張機能は、[hnmr293氏によるsd-webui-cutoff](https://github.com/hnmr293/sd-webui-cutoff)の素晴らしいコンセプトとアルゴリズムに強くインスパイアされています。  
+Forgeのアーキテクチャ（`hijack` APIの廃止）に対応するため、`sd-webui-cutoff`のU-Netフックとは異なるアプローチ（CTPEとConditionCrossAttnへのパッチ）で機能を再実装しました。  
+偉大な先駆者であるhnmr293氏に、心からの敬意と感謝を申し上げます。  
+> This work is strongly inspired by the great concept and algorithm of [sd-webui-cutoff by hnmr293](https://github.com/hnmr293/sd-webui-cutoff).
+> To adapt to Forge’s architecture (no `hijack` API), we re-implemented the feature with a different approach (patching **CTPE** and **ConditionCrossAttn**) instead of the original U-Net hook.
+> Many thanks and respect to hnmr293 for the pioneering work.
