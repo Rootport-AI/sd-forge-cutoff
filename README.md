@@ -96,7 +96,7 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 > `blue` is a **color concept vector**—it does not, by itself, know whether it should apply to hair or shirt. Cross-attention probabilistically decides **where** to attribute `blue`. Having `hair` nearby helps localize, but bleed still occurs because:
 > - **Co-occurrence bias:** If training images often depict **blue hair and blue clothes together**, `blue` can **weakly associate** with shirt as well.
 > - **Attention spill:** Cross-attention can’t perfectly isolate token effects; `blue` can leak into token rows like `shirt` or `indoors`.
-> - **Limited positional cues:** Being adjacent (`blue` right before `hair`) is only a hint—positions aren’t perfectly separable.
+> - **Limited positional cues:** Being adjacent (`blue` right before `hair`) is only a hint—positions aren’t perfectly separable.  
 
 結果として、U-Net側のクロスアテンションは「髪の他にシャツにも blue の重みを少し載せる」→ 生成像でシャツに青が載ってしまう、という“カラーブリード”が生じるわけです。
 > As a result, U-Net may place a small `blue` weight on **shirt** as well as **hair**, causing **color bleed**.
