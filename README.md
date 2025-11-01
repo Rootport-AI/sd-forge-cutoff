@@ -24,7 +24,7 @@ SD WebUI Forge専用の**トークンの影響範囲を操作することでカ�
 
 ---
 
-[![Test prompt A (control)](images/Test_prompt_A_control.png)](images/Test_prompt_A_control.png)
+[Test prompt A (control)](images/Test_prompt_A_control.png)
 
 テストプロンプトA／Test prompt A
 ```
