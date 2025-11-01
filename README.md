@@ -214,8 +214,8 @@ flowchart TD
     X[Cross-attention blocks<br/>use encoder_hidden_states = C1_final / C2_final]
   end
 
-  Z --> X
   C1F --> X
+  Z --> X
   C2F --> X
   T --> X
 
