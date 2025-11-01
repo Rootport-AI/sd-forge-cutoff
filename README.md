@@ -81,7 +81,7 @@ Hires upscaler: R-ESRGAN 4x+ Anime6B,
 
 ### (a) プロンプト → 最終コンディショニング行列／Prompt → final conditioning matrix  
 文字情報で書かれたプロンプトは、そのままでは**U-net（Stable Diffusionの心臓部）**では読み込めません。プロンプトのテキストをまずトークン化し、さらにU-netが読み込み可能な**テンソル（数値データのセット）**に変換する必要があります。
-SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系統）**を通って、最終的に **S×H** の**行列 C**（S=トークン列長、H=隠れ次元）になります。この C が U-Net のクロスアテンションの **“文脈（context）”**として、全層・全ステップで参照されます。
+SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系統）**を通って、最終的に **S×H** の**行列 C**（S=トークン列長、H=隠れ次元）になります。この C が U-Net のクロスアテンションの **“文脈（context）”**として、全層・全ステップで参照されます。  
 *（※文系ユーザー向けのメモ：テンソルとは、噛み砕いていえば「ひとまとまりの数値データのセットを並べたもの」のことです。一次元のテンソルをベクトル、二次元のテンソルを行列と呼びます。）* 　
 >A text prompt can’t be fed to the **U-Net** directly. It is **tokenized** then converted into numeric tensors that U-Net can read.
 >In SDXL, tokens pass through **two text encoders (TE1/TE2)** and form a final matrix **C** of shape **S×H** (S = sequence length, H = hidden size). This C is referenced as context by the U-Net’s cross-attention at every layer and step.
@@ -108,8 +108,10 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 > We first create a **dummy prompt** by replacing the target word (e.g., blue) with _, then **neutralize the real prompt’s tensor with the dummy’s** to suppress color bleed.
 
 ### (a) 2つのコンディショニングを作る／Build two conditionings
-- **元の最終行列：C_orig**（`blue` を含む行列）／Original: C_orig (contains `blue`)
-- **ターゲット（blue）だけを `_` に置き換えたダミープロンプトから得た行列：C_dummy**（`blue` の寄与が取り除かれた行列）／Dummy: C_dummy (obtained by replacing only blue with _)
+- **元の最終行列：C_orig**（`blue` を含む行列）
+  > Original: C_orig (contains `blue`)
+- **ターゲット（blue）だけを `_` に置き換えたダミープロンプトから得た行列：C_dummy**（`blue` の寄与が取り除かれた行列）  
+  > Dummy: C_dummy (obtained by replacing only blue with _)
   
 ここで **`_` は意味が薄い記号**であり、他のトークンへの影響はごくわずかです。したがって、差分 (C_orig − C_dummy) は、ほぼ「`blue` 由来の成分」を表します。
 （※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）
@@ -119,24 +121,26 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 
 ### (b) 「影響を切りたい行（Victim）」だけを置き換える／Replace only the rows you want to damp (Victim)
 `shirt` や `indoors` など Victim 行集合 V に対してだけ、C を次のように更新します（Lerp の場合）：
-  For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):
+> For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):
 
 ```math
 C_{\text{final}}[V] \;=\; (1-\alpha)\, C_{\text{orig}}[V] \;+\; \alpha \, C_{\text{dummy}}[V]
 ```
 
-Slerp を使う場合は、向き（方向）を保ったまま大きさを補間しますが、本質は同じです：
-“元の行ベクトルから、`blue` に相当する成分だけを部分的に抜く” という操作になります。
-  With **Slerp**, we move along the spherical arc (preserving direction better), but the idea is the same: **partially subtract the `blue` component only from Victim rows.**
+Slerp を使う場合は、向き（方向）を保ったまま大きさを補間しますが、本質は同じです：  
+“元の行ベクトルから、`blue` に相当する成分だけを部分的に抜く” という操作になります。  
+> With **Slerp**, we move along the spherical arc (preserving direction better), but the idea is the same: **partially subtract the `blue` component only from Victim rows.**
 
 ### (c) 何が起きるか（アテンション経路の遮断）／What this changes (cutting the attention path)
 U-Net のクロスアテンションは C の各行を Keys/Values として参照します。  
-Victim 行を C_dummy へ寄せることで、その行が持っていた `blue` 方向の情報が弱まり、
-  U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
-- `shirt` 行 → `blue` への結びつきが薄くなる／`shirt` rows: **weakened** association to `blue`
-- `hair` 行 → 置き換えないので `blue` はそのまま強く残る／`hair` rows: **unchanged**, keep `blue` strong
+Victim 行を C_dummy へ寄せることで、その行が持っていた `blue` 方向の情報が弱まり、  
+> U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
+- `shirt` 行 → `blue` への結びつきが薄くなる  
+  > `shirt` rows: **weakened** association to `blue`
+- `hair` 行 → 置き換えないので `blue` はそのまま強く残る
+  > `hair` rows: **unchanged**, keep `blue` strong
 という **“局所的な引き算”**が実現します。結果、`blue` の影響経路を 「髪」には残しつつ、「シャツ」では弱められる → ブリードが減る、というメカニズムです。  
-  This is a **local, row-wise subtraction**, reducing `blue` on the shirt while keeping it on the hair.
+> This is a **local, row-wise subtraction**, reducing `blue` on the shirt while keeping it on the hair.
 
 ### (d)　プロンプトの**重みづけ表現**と何が違うの？／How is this different from prompt weighting?
 Stable Diffuisonでは、`[blue]`や`(blue:0.8)`のような**重みづけ表現**によって、プロンプトの一部の影響を弱められます。このような表記をすると、**プロンプト全体に対する`blue`の影響**が弱まります。  
