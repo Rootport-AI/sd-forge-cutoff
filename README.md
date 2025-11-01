@@ -121,17 +121,15 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 
 ### (b) 「影響を切りたい行（Victim）」だけを置き換える／Replace only the rows you want to damp (Victim)
 `shirt` や `indoors` など Victim 行集合 V に対してだけ、C を次のように更新します（Lerp の場合）：
-> For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):  
-<br>  
-<br>  
+> For Victim rows V (e.g., `shirt`, `indoors`), update C (Lerp case):   
+  
 ```math
 C_{\text{final}}[V] \;=\; (1-\alpha)\, C_{\text{orig}}[V] \;+\; \alpha \, C_{\text{dummy}}[V]
 ```
-<br>  
-<br>  
+  
 Slerp を使う場合は、向き（方向）を保ったまま大きさを補間しますが、本質は同じです：  
 “元の行ベクトルから、`blue` に相当する成分だけを部分的に抜く” という操作になります。  
-> With **Slerp**, we move along the spherical arc (preserving direction better), but the idea is the same: **partially subtract the `blue` component only from Victim rows.**
+> With **Slerp**, we move along the spherical arc (preserving direction better), but the idea is the same: **partially subtract the `blue` component only from Victim rows.**  
 
 ### (c) 何が起きるか（アテンション経路の遮断）／What this changes (cutting the attention path)
 U-Net のクロスアテンションは C の各行を Keys/Values として参照します。  
