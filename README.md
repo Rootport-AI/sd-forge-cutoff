@@ -114,8 +114,8 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 （※ギーク向けのメモ：つまり`_`は、パディングの簡易な代替です。）  
 > - Original: C_orig (contains `blue`)  
 > - Dummy: C_dummy (obtained by replacing only blue with _)  
-> `_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
-> *(Geek note: `_` is a practical stand-in for padding.)*  
+>`_` carries little meaning, so the difference (**C_orig − C_dummy**) approximates the `blue` contribution.  
+>*(Geek note: `_` is a practical stand-in for padding.)*  
 
 
 ### (b) 「影響を切りたい行（Victim）」だけを置き換える／Replace only the rows you want to damp (Victim)
