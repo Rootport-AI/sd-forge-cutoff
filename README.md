@@ -325,7 +325,7 @@ sd-forge-cutoffでは、デフォルトではこれら2系統の両翼で中和�
 >  
 >  In our testing, **Slerp* tends to suppress bleed better while keeping pose stable. Lerp is lighter but the runtime difference is usually negligible on modern devices.
 
-## Sanity test (for debug)  
+### Sanity test (for debug)  
 Forgeの画像生成経路にこの拡張機能が干渉できているかどうかを確認するための、デバッグ用の機能です。プロンプト末尾の **N% のトークンを丸ごと** 中和します。*Target / Exclude / Processing* は無視されます。**Enable／Strength／Interpolation（Lerp/Slerp）／Apply to TE1/TE2** の効きと、キャッシュ更新の要否を確認する用途です。  
 実運用では **OFF** にしてください。
 >  Debug aid to verify the pipeline is wired correctly. Temporarily neutralizes the last N% of tokens in the prompt. It **ignores** *Target / Exclude / Processing*, but **Enable / Strength / Interpolation / Apply to TE1/TE2** take effect, and you can also check if a cache refresh is needed.  
