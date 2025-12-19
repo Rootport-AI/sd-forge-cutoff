@@ -141,7 +141,7 @@ Victim 行を C_dummy へ寄せることで、その行が持っていた `blue`
 - `shirt` 行 → `blue` への結びつきが薄くなる  
 - `hair` 行 → 置き換えないので `blue` はそのまま強く残る  
 
-という **“局所的な引き算”**が実現します。結果、`blue` の影響経路を 「髪」には残しつつ、「シャツ」では弱められる → ブリードが減る、というメカニズムです。  
+という **“局所的な引き算”** が実現します。結果、`blue` の影響経路を 「髪」には残しつつ、「シャツ」では弱められる → ブリードが減る、というメカニズムです。  
 > U-Net uses each row of **C** as Keys/Values in cross-attention.By pulling Victim rows toward **C_dummy**, their `blue` direction weakens, so:
 > - `shirt` rows: **weakened** association to `blue`
 > -  `hair` rows: **unchanged**, keep `blue` strong
