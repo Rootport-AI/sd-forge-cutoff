@@ -295,8 +295,10 @@ sd-forge-cutoffは、デフォルトではvictim行の全体を中和対象に�
 > Example: with Test Prompt A and Target=`frilled`, the background can turn gray because `frilled` is abstract and touches background tokens as well. Excluding `indoors, background` recovers the background.
 
 ### Processing target
-上記のExclude from processingとは逆に、中和の対象を明示したいときに使います。ここに何らかの文字列が入っている場合、victim行の全体を中和するという機能はスキップされ、victim行の中の`Processing target`のトークンがエンコードされた位置のみが中和されます。
-**Tips:** ここには「実際にTarget tokensの影響を受けているトークン」を指定する必要があります。たとえばTarget tokens=`blue`、Processing target=`shirt`を指定した場合、もしもシャツのトークンが青のトークンに影響されていなければ、何も中和されず、Enable=offで生成した場合とほぼ同じ出力結果になります。生成結果の見た目では「髪の青さがシャツに影響している」ように見えたとしても、実際にはそうではない（シャツは別の要因で青くなっている）ケースがあるのです。
+上記のExclude from processingとは逆に、中和の対象を明示したいときに使います。ここに何らかの文字列が入っている場合、victim行の全体を中和するという機能はスキップされ、victim行の中の`Processing target`のトークンがエンコードされた位置のみが中和されます。  
+
+**Tips:** ここには「実際にTarget tokensの影響を受けているトークン」を指定する必要があります。たとえばTarget tokens=`blue`、Processing target=`shirt`を指定した場合、もしもシャツのトークンが青のトークンに影響されていなければ、何も中和されず、Enable=offで生成した場合とほぼ同じ出力結果になります。生成結果の見た目では「髪の青さがシャツに影響している」ように見えたとしても、実際にはそうではない（シャツは別の要因で青くなっている）ケースがあるのです。  
+
 > The inverse: **restrict** neutralization **only to the tokens listed here**. If this is non-empty, the “neutralize all Victim rows” step is skipped and only positions that match the **Processing targets** are neutralized.
 > **Tips:** List tokens **actually under the influence** of the Target tokens. If Target=`blue`, Processing=`shirt`, but the shirt isn’t affected by `blue`, nothing will be neutralized and the result will look like Enable=off.
 
