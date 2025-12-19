@@ -83,7 +83,7 @@ Hires upscaler: R-ESRGAN 4x+ Anime6B,
 > Take `1girl, blue hair, white shirt, indoors` as an example where the shirt turns bluish even though we specified `white shirt`. Why does the hair color spill onto the shirt?
 
 ### (a) プロンプト → 最終コンディショニング行列／Prompt → final conditioning matrix  
-文字情報で書かれたプロンプトは、そのままでは**U-net（Stable Diffusionの心臓部）**では読み込めません。プロンプトのテキストをまずトークン化し、さらにU-netが読み込み可能な**テンソル（数値データのセット）**に変換する必要があります。
+文字情報で書かれたプロンプトは、そのままでは **U-net（Stable Diffusionの心臓部）** では読み込めません。プロンプトのテキストをまずトークン化し、さらにU-netが読み込み可能な**テンソル（数値データのセット）**に変換する必要があります。
 SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系統）**を通って、最終的に **S×H** の**行列 C**（S=トークン列長、H=隠れ次元）になります。この C が U-Net のクロスアテンションの **“文脈（context）”**  として、全層・全ステップで参照されます。  
 *（※文系ユーザー向けのメモ：テンソルとは、噛み砕いていえば「ひとまとまりの数値データのセットを並べたもの」のことです。一次元のテンソルをベクトル、二次元のテンソルを行列と呼びます。）* 　
 >A text prompt can’t be fed to the **U-Net** directly. It is **tokenized** then converted into numeric tensors that U-Net can read.
@@ -91,7 +91,7 @@ SDXLの場合、各トークンが**テキストエンコーダ（TE1/TE2の2系
 >*(Note for non-engineers: a tensor is a “multi-axis table of numbers.” 1-D = vector, 2-D = matrix.)*
 
 ### (b) “色語”は部位を知らない／“Color words” don’t know body parts  
-`blue` は **「色の概念ベクトル」** ですが、髪かシャツかを単独で判別しません。モデルはクロスアテンションで「画像のどこに `blue` を割り当てるか」を**確率的に決めます**。 `hair`が一緒にあれば`blue`を適用すべき位置のヒントにはなりますが、以下の理由で**漏れ（ブリード）**がしばしば生じます。
+`blue` は **「色の概念ベクトル」** ですが、髪かシャツかを単独で判別しません。モデルはクロスアテンションで「画像のどこに `blue` を割り当てるか」を**確率的に決めます**。 `hair`が一緒にあれば`blue`を適用すべき位置のヒントにはなりますが、以下の理由で **漏れ（ブリード）** がしばしば生じます。
 - **共起バイアス：** 学習データに「青い髪」と「青い服」が同時に描かれた画像が多かった（偏りがあった）場合 → `blue` が衣服トークン（`shirt`）にも**弱く結びつきます**。
 - **アテンションの拡散：** クロスアテンションは各トークンの相互の影響を完全に分離することはできないため、`blue` の影響が「髪」以外のトークン行（`shirt`, `indoors` など）にも混入することがあります。
 - **位置依存の弱さ：** 文法上の近接（blue の直後に hair）は手がかりになりますが、完全ではありません。クロスアテンションの仕組み上、単語の位置を完全に分離することはできません。 　
